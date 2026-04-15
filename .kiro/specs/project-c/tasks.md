@@ -141,20 +141,20 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - Mostrar mensaje de error descriptivo en credenciales inválidas
     - _Requirements: 1.1, 1.2_
 
-- [ ] 11. UI: Componentes del Student Panel
-  - [ ] 11.1 Implementar componente `XPBar`
+- [x] 11. UI: Componentes del Student Panel
+  - [x] 11.1 Implementar componente `XPBar`
     - Crear `src/gamification/infrastructure/XPBar.tsx`
     - Mostrar XP actual, nivel y XP al siguiente nivel
     - Disparar animación CSS de subida de nivel cuando `level` incrementa
     - _Requirements: 5.2, 5.4_
 
-  - [ ] 11.2 Implementar componente `EnemySprite`
+  - [x] 11.2 Implementar componente `EnemySprite`
     - Crear `src/academic/infrastructure/EnemySprite.tsx`
     - Animación CSS con `steps()` y `transform` para sprites de `tp1`, `tp2`, `parcial1`, `parcial2`
     - Mostrar estado `isDefeated` con animación de derrota
     - _Requirements: 6.2, 6.3, 6.4, 9.6_
 
-  - [ ] 11.3 Implementar `StudentPanel`
+  - [x] 11.3 Implementar `StudentPanel`
     - Crear `src/identity/infrastructure/StudentPanel.tsx`
     - Suscribirse a `onSnapshot` del documento del usuario para actualizaciones en tiempo real
     - Renderizar avatar con `AvatarClass` y animación CSS de sprite
