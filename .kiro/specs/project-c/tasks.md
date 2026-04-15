@@ -25,33 +25,33 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - Aplicar cap de 960 XP y fórmula `Math.floor(xp / 100) + 1`
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-  - [ ] 3.2 Property test: Invariante de rango XP (Property 1)
+  - [x] 3.2 Property test: Invariante de rango XP (Property 1)
     - **Property 1: Invariante de rango XP**
     - **Validates: Requirements 3.2, 3.3**
     - Para cualquier secuencia de `addXP(amount)` con `amount ≥ 0`, `xp` siempre ∈ [0, 960]
 
-  - [ ]* 3.3 Property test: Consistencia nivel–XP (Property 2)
+  - [x]* 3.3 Property test: Consistencia nivel–XP (Property 2)
     - **Property 2: Consistencia nivel–XP**
     - **Validates: Requirements 3.1, 3.4, 8.3**
     - Para cualquier `xp` ∈ [0, 960], `level = Math.floor(xp / 100) + 1` ∈ [1, 10]
 
-  - [ ]* 3.4 Property test: XP correcto por tipo de actividad (Property 3)
+  - [x]* 3.4 Property test: XP correcto por tipo de actividad (Property 3)
     - **Property 3: XP correcto por tipo de actividad**
     - **Validates: Requirements 3.5, 3.6, 3.7**
     - TP → +70, Parcial → +200, Asistencia → +20 (sujeto al cap)
 
-- [ ] 4. Dominio: Academic Context
-  - [ ] 4.1 Implementar entidad `Evaluation` y evento `EvaluationApprovedEvent`
+- [x] 4. Dominio: Academic Context
+  - [x] 4.1 Implementar entidad `Evaluation` y evento `EvaluationApprovedEvent`
     - Crear `src/academic/domain/Evaluation.ts` con método `approve(score)`
     - Crear `src/academic/domain/events.ts` con `EvaluationApprovedEvent` (xpReward: TP=70, Parcial=200)
     - _Requirements: 4.1, 4.2, 3.5, 3.6_
 
-- [ ] 5. Shared Kernel: EventBus y BaseEntity
-  - [ ] 5.1 Implementar `EventBus` basado en `EventEmitter`
+- [x] 5. Shared Kernel: EventBus y BaseEntity
+  - [x] 5.1 Implementar `EventBus` basado en `EventEmitter`
     - Crear `src/shared/EventBus.ts` con métodos `on`, `emit`, `off`
     - _Requirements: 4.3_
 
-  - [ ] 5.2 Implementar `OutboxService`
+  - [x] 5.2 Implementar `OutboxService`
     - Crear `src/shared/OutboxService.ts` con métodos `enqueue`, `processAll`, `recoverPending`
     - Persistir eventos en Firestore `outbox/{id}` con estado `pending`/`processed`
     - _Requirements: 4.2, 4.5, 11.1, 11.2, 11.3_
