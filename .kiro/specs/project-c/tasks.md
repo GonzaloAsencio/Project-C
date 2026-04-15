@@ -18,8 +18,8 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - Crear `src/identity/domain/User.ts` con clase `User`, tipos `Role` y `AvatarClass`
     - _Requirements: 1.1, 2.1, 2.2_
 
-- [ ] 3. Dominio: Gamification Context
-  - [ ] 3.1 Implementar `PlayerProgress` y eventos de dominio
+- [x] 3. Dominio: Gamification Context
+  - [x] 3.1 Implementar `PlayerProgress` y eventos de dominio
     - Crear `src/gamification/domain/PlayerProgress.ts` con método `addXP(amount)`
     - Crear `src/gamification/domain/events.ts` con `XPAddedEvent` y `LevelUpEvent`
     - Aplicar cap de 960 XP y fórmula `Math.floor(xp / 100) + 1`
