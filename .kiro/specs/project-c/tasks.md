@@ -25,7 +25,7 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - Aplicar cap de 960 XP y fórmula `Math.floor(xp / 100) + 1`
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-  - [ ]* 3.2 Property test: Invariante de rango XP (Property 1)
+  - [ ] 3.2 Property test: Invariante de rango XP (Property 1)
     - **Property 1: Invariante de rango XP**
     - **Validates: Requirements 3.2, 3.3**
     - Para cualquier secuencia de `addXP(amount)` con `amount ≥ 0`, `xp` siempre ∈ [0, 960]
