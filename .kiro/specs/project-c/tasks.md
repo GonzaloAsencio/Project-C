@@ -13,8 +13,8 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
   - Instalar dependencias: `firebase`, `react-router-dom`, `canvas-confetti`, `fast-check`, `vitest`
   - _Requirements: 10.1_
 
-- [ ] 2. Dominio: Identity Context
-  - [ ] 2.1 Implementar entidades y value objects de Identity
+- [x] 2. Dominio: Identity Context
+  - [x] 2.1 Implementar entidades y value objects de Identity
     - Crear `src/identity/domain/User.ts` con clase `User`, tipos `Role` y `AvatarClass`
     - _Requirements: 1.1, 2.1, 2.2_
 
