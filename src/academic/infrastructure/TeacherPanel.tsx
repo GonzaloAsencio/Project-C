@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react"
 import { collection, onSnapshot, query, where } from "firebase/firestore"
 import { db } from "../../shared/firebase"
-import { eventBus } from "../../shared/EventBus"
-import { OutboxService } from "../../shared/OutboxService"
+import { outboxService } from "../../shared/services"
 import { ApproveEvaluation } from "../application/ApproveEvaluation"
 import { FirestoreEvalRepo } from "./FirestoreEvalRepo"
 import type { EvaluationStatus } from "../domain/Evaluation"
@@ -53,8 +52,7 @@ const STATUS_COLORS: Record<EvaluationStatus, string> = {
 
 // ─── Use case singleton ───────────────────────────────────────────────────────
 
-const _outbox = new OutboxService(db, eventBus)
-const approveEvalUC = new ApproveEvaluation(new FirestoreEvalRepo(), _outbox)
+const approveEvalUC = new ApproveEvaluation(new FirestoreEvalRepo(), outboxService)
 
 // ─── Cell saving state ────────────────────────────────────────────────────────
 

@@ -184,17 +184,17 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - **Validates: Requirements 7.5**
     - Para cualquier lista de alumnos, el panel renderizado incluye nombre, nivel, XP y estado/puntaje de cada evaluación
 
-- [ ] 13. Checkpoint — UI completa
+- [x] 13. Checkpoint — UI completa
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Integración y wiring final
-  - [ ] 14.1 Conectar casos de uso con adaptadores de infraestructura
+- [x] 14. Integración y wiring final
+  - [x] 14.1 Conectar casos de uso con adaptadores de infraestructura
     - Instanciar y conectar `FirebaseAuthAdapter`, `FirestoreProgressRepo`, `FirestoreEvalRepo`, `OutboxService` y `EventBus` en el punto de entrada de la app (`src/main.tsx`)
     - Registrar el handler `AddXP` en el `EventBus` al iniciar la app
     - Iniciar `OutboxService.recoverPending()` al reconectar (listener `onLine`)
     - _Requirements: 4.3, 4.5, 11.3_
 
-  - [ ] 14.2 Configurar Firebase Hosting y `firebase.json`
+  - [x] 14.2 Configurar Firebase Hosting y `firebase.json`
     - Crear `firebase.json` con configuración de Hosting apuntando a `dist/`
     - Crear `.firebaserc` con el project ID
     - _Requirements: (infraestructura de deploy)_
