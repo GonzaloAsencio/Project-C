@@ -56,12 +56,12 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - Persistir eventos en Firestore `outbox/{id}` con estado `pending`/`processed`
     - _Requirements: 4.2, 4.5, 11.1, 11.2, 11.3_
 
-  - [ ]* 5.3 Property test: Persistencia de eventos Outbox (Property 7)
+  - [x]* 5.3 Property test: Persistencia de eventos Outbox (Property 7)
     - **Property 7: Persistencia de eventos Outbox**
     - **Validates: Requirements 11.1, 11.2**
     - Todo evento encolado aparece en `outbox/{id}` con estado `pending` antes de procesarse y `processed` después
 
-  - [ ]* 5.4 Property test: Recuperación de eventos pending (Property 8)
+  - [x]* 5.4 Property test: Recuperación de eventos pending (Property 8)
     - **Property 8: Recuperación de eventos pending al reconectar**
     - **Validates: Requirements 4.5, 11.3**
     - Al reconectar, todos los eventos con estado `pending` son recuperados y reemitidos
