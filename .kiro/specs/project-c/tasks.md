@@ -169,8 +169,8 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - **Validates: Requirements 6.1, 6.5**
     - `combatMode === evaluations.some(e => e.status === "Pending")` para cualquier lista de evaluaciones
 
-- [ ] 12. UI: Teacher Panel
-  - [ ] 12.1 Implementar `TeacherPanel`
+- [x] 12. UI: Teacher Panel
+  - [x] 12.1 Implementar `TeacherPanel`
     - Crear `src/academic/infrastructure/TeacherPanel.tsx`
     - Suscribirse a `onSnapshot` de `users` filtrado por `role: "student"`
     - Renderizar tabla con nombre, nivel, XP y estado/puntaje de TP1, TP2, Parcial1, Parcial2
