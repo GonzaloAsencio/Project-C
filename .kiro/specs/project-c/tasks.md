@@ -93,18 +93,18 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - **Validates: Requirements 2.3, 2.5**
     - Para cualquier usuario con `role !== "teacher"`, escritura en `evaluations` o `users` es rechazada (usar Firebase Emulator)
 
-- [ ] 8. Casos de uso: Application Layer
-  - [ ] 8.1 Implementar `LoginUser` use case
+- [x] 8. Casos de uso: Application Layer
+  - [x] 8.1 Implementar `LoginUser` use case
     - Crear `src/identity/application/LoginUser.ts`
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 8.2 Implementar `ApproveEvaluation` use case
+  - [x] 8.2 Implementar `ApproveEvaluation` use case
     - Crear `src/academic/application/ApproveEvaluation.ts`
     - Actualizar evaluación en Firestore y encolar `EvaluationApprovedEvent` en `OutboxService`
     - Actualizar `gradesSummary` en el documento del usuario de forma atómica
     - _Requirements: 4.1, 4.2, 4.4, 8.1_
 
-  - [ ] 8.3 Implementar `AddXP` use case con idempotencia
+  - [x] 8.3 Implementar `AddXP` use case con idempotencia
     - Crear `src/gamification/application/AddXP.ts`
     - Verificar si el `evalId` ya fue procesado antes de sumar XP
     - Suscribirse al `EventBus` para recibir `EvaluationApproved`
@@ -115,7 +115,7 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - **Validates: Requirements 4.6, 11.4**
     - Procesar el mismo `EvaluationApproved` N veces produce el mismo XP final que procesarlo una vez
 
-  - [ ] 8.5 Implementar `GetStudentDashboard` use case
+  - [x] 8.5 Implementar `GetStudentDashboard` use case
     - Crear `src/academic/application/GetStudentDashboard.ts`
     - Retornar `{user, evaluations, combatMode}` donde `combatMode = evaluations.some(e => e.status === "Pending")`
     - _Requirements: 5.1, 5.2, 6.1_

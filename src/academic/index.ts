@@ -1,2 +1,5 @@
 export { Evaluation, type EvaluationStatus } from "./domain/Evaluation"
 export { EvaluationApprovedEvent } from "./domain/events"
+export { FirestoreEvalRepo } from "./infrastructure/FirestoreEvalRepo"
+export { ApproveEvaluation } from "./application/ApproveEvaluation"
+export { GetStudentDashboard } from "./application/GetStudentDashboard"
