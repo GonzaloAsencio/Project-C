@@ -205,7 +205,7 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - Verificar recuperación de eventos `pending` al reconectar
     - _Requirements: 4.1, 4.2, 4.3, 4.5, 7.2, 11.3_
 
-- [ ] 15. Checkpoint final — Ensure all tests pass
+- [x] 15. Checkpoint final — Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
