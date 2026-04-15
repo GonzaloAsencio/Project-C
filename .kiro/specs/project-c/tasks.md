@@ -88,7 +88,7 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - Alumnos solo pueden leer su propio documento
     - _Requirements: 2.3, 2.4, 2.5_
 
-  - [ ]* 7.5 Property test: Restricción de escritura por rol (Property 10)
+  - [x]* 7.5 Property test: Restricción de escritura por rol (Property 10)
     - **Property 10: Restricción de escritura en Firestore por rol**
     - **Validates: Requirements 2.3, 2.5**
     - Para cualquier usuario con `role !== "teacher"`, escritura en `evaluations` o `users` es rechazada (usar Firebase Emulator)
@@ -110,7 +110,7 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - Suscribirse al `EventBus` para recibir `EvaluationApproved`
     - _Requirements: 4.3, 4.6, 11.4_
 
-  - [ ]* 8.4 Property test: Idempotencia del handler AddXP (Property 4)
+  - [x]* 8.4 Property test: Idempotencia del handler AddXP (Property 4)
     - **Property 4: Idempotencia del handler AddXP**
     - **Validates: Requirements 4.6, 11.4**
     - Procesar el mismo `EvaluationApproved` N veces produce el mismo XP final que procesarlo una vez
