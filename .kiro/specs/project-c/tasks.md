@@ -66,24 +66,24 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - **Validates: Requirements 4.5, 11.3**
     - Al reconectar, todos los eventos con estado `pending` son recuperados y reemitidos
 
-- [ ] 6. Checkpoint — Dominio y Shared Kernel
+- [x] 6. Checkpoint — Dominio y Shared Kernel
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Infraestructura: Firebase adapters
-  - [ ] 7.1 Configurar Firebase y crear `FirebaseAuthAdapter`
+- [x] 7. Infraestructura: Firebase adapters
+  - [x] 7.1 Configurar Firebase y crear `FirebaseAuthAdapter`
     - Crear `src/shared/firebase.ts` con inicialización de Firebase App, Auth y Firestore
     - Crear `src/identity/infrastructure/FirebaseAuthAdapter.ts` con `signIn`, `signOut`, `onAuthStateChanged`
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 7.2 Implementar `FirestoreProgressRepo`
+  - [x] 7.2 Implementar `FirestoreProgressRepo`
     - Crear `src/gamification/infrastructure/FirestoreProgressRepo.ts` con `getProgress`, `saveProgress`
     - _Requirements: 3.1, 8.3_
 
-  - [ ] 7.3 Implementar `FirestoreEvalRepo`
+  - [x] 7.3 Implementar `FirestoreEvalRepo`
     - Crear `src/academic/infrastructure/FirestoreEvalRepo.ts` con `getEvaluations`, `updateEvaluation`
     - _Requirements: 4.1, 7.1_
 
-  - [ ] 7.4 Escribir reglas de seguridad de Firestore
+  - [x] 7.4 Escribir reglas de seguridad de Firestore
     - Crear `firestore.rules` con reglas que permitan escritura en `evaluations` y `users` solo a `role: "teacher"`
     - Alumnos solo pueden leer su propio documento
     - _Requirements: 2.3, 2.4, 2.5_
