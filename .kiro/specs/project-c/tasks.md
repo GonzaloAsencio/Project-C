@@ -120,11 +120,11 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - Retornar `{user, evaluations, combatMode}` donde `combatMode = evaluations.some(e => e.status === "Pending")`
     - _Requirements: 5.1, 5.2, 6.1_
 
-- [ ] 9. Checkpoint — Application Layer
+- [x] 9. Checkpoint — Application Layer
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. UI: Routing, Auth y Route Guards
-  - [ ] 10.1 Configurar React Router con rutas protegidas
+- [x] 10. UI: Routing, Auth y Route Guards
+  - [x] 10.1 Configurar React Router con rutas protegidas
     - Crear `src/App.tsx` con `BrowserRouter`, rutas `/`, `/student`, `/teacher`
     - Crear `src/shared/RouteGuard.tsx` que verifica autenticación y rol antes de renderizar
     - Redirigir usuarios no autenticados a `/login`; redirigir por rol incorrecto al panel correcto
@@ -136,7 +136,7 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
     - **Validates: Requirements 1.3**
     - Para cualquier ruta protegida, un usuario no autenticado siempre es redirigido a `/login`
 
-  - [ ] 10.3 Implementar `AuthUI` (Login/Register)
+  - [x] 10.3 Implementar `AuthUI` (Login/Register)
     - Crear `src/identity/infrastructure/AuthUI.tsx` con formulario de email/contraseña
     - Mostrar mensaje de error descriptivo en credenciales inválidas
     - _Requirements: 1.1, 1.2_
