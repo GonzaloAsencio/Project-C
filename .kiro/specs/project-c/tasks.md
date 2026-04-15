@@ -6,7 +6,7 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
 
 ## Tasks
 
-- [ ] 1. Scaffolding del proyecto y estructura de módulos
+- [x] 1. Scaffolding del proyecto y estructura de módulos
   - Inicializar proyecto con `npm create vite@latest project-c -- --template react-ts`
   - Crear estructura de carpetas: `src/identity/`, `src/gamification/`, `src/academic/`, `src/shared/`
   - Configurar `vitest` y `fast-check` en `vite.config.ts`
