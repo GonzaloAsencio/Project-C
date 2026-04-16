@@ -1,4 +1,4 @@
-import { doc, runTransaction, getDoc } from "firebase/firestore"
+import { doc, runTransaction, getDoc, setDoc } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import type { FirestoreEvalRepo } from "../infrastructure/FirestoreEvalRepo"
 import type { OutboxService } from "../../shared/OutboxService"
@@ -21,7 +21,8 @@ export class ApproveEvaluation {
       const evalRef = doc(db, "evaluations", evalId)
       const userRef = doc(db, "users", studentUid)
 
-      tx.update(evalRef, { status: "Victory", score })
+      // Use set+merge so it works even if the eval doc doesn't exist yet
+      tx.set(evalRef, { status: "Victory", score }, { merge: true })
 
       const evalKey = `${type === "TP" ? "tp" : "parcial"}${index}`
       tx.update(userRef, {

@@ -124,10 +124,19 @@ export default function StudentPanel() {
   // First pending evaluation drives the enemy sprite type
   const pendingEvalKey = EVAL_KEYS.find((k) => grades[k]?.status === "Pending")
 
-  if (!user || !userData) {
+  if (!user) {
     return (
       <div className="sp-loading" role="status" aria-live="polite">
         Cargando panel…
+      </div>
+    )
+  }
+
+  // Show skeleton while waiting for Firestore data (max ~5s then show empty state)
+  if (!userData) {
+    return (
+      <div className="sp-loading" role="status" aria-live="polite">
+        Cargando tu perfil…
       </div>
     )
   }

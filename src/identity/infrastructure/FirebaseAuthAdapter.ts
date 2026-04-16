@@ -4,12 +4,20 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged as firebaseOnAuthStateChanged,
 } from "firebase/auth"
-import { doc, getDoc, setDoc } from "firebase/firestore"
+import { doc, getDoc, setDoc, writeBatch } from "firebase/firestore"
 import { auth, db } from "../../shared/firebase"
 import { User } from "../domain/User"
 import type { Role, AvatarClass } from "../domain/User"
 
 const AVATAR_CLASSES: AvatarClass[] = ["Sword", "Axe", "Dagger", "Bow", "Magic"]
+
+// Evaluation seed config
+const EVAL_SEED = [
+  { key: "tp1",      type: "TP",      index: 1 },
+  { key: "tp2",      type: "TP",      index: 2 },
+  { key: "parcial1", type: "Parcial", index: 1 },
+  { key: "parcial2", type: "Parcial", index: 2 },
+] as const
 
 export class FirebaseAuthAdapter {
   async signIn(email: string, password: string): Promise<User> {
@@ -33,7 +41,11 @@ export class FirebaseAuthAdapter {
     const credential = await createUserWithEmailAndPassword(auth, email, password)
     const uid = credential.user.uid
     const chosenAvatar = avatarClass ?? AVATAR_CLASSES[Math.floor(Math.random() * AVATAR_CLASSES.length)]
-    const userDoc = {
+
+    const batch = writeBatch(db)
+
+    // Create user document
+    batch.set(doc(db, "users", uid), {
       displayName,
       email,
       role,
@@ -42,8 +54,22 @@ export class FirebaseAuthAdapter {
       xp: 0,
       xpToNextLevel: 100,
       gradesSummary: {},
+    })
+
+    // Seed evaluation documents for students
+    if (role === "student") {
+      for (const ev of EVAL_SEED) {
+        batch.set(doc(db, "evaluations", `${uid}_${ev.key}`), {
+          studentUid: uid,
+          type: ev.type,
+          index: ev.index,
+          status: "Pending",
+          score: 0,
+        })
+      }
     }
-    await setDoc(doc(db, "users", uid), userDoc)
+
+    await batch.commit()
     return new User(uid, email, role, chosenAvatar)
   }
 
