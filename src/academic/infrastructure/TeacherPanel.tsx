@@ -2,11 +2,8 @@ import { useEffect, useState } from "react"
 import { collection, onSnapshot, query, where } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { outboxService } from "../../shared/services"
-import { ApproveEvaluation } from "../application/ApproveEvaluation"
-import { FirestoreEvalRepo } from "./FirestoreEvalRepo"
+import { UpdateGrade } from "../application/UpdateGrade"
 import type { EvaluationStatus } from "../domain/Evaluation"
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface GradeEntry {
   status: EvaluationStatus
@@ -22,55 +19,43 @@ interface StudentDocument {
   gradesSummary: Record<string, GradeEntry>
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const EVAL_KEYS = ["tp1", "tp2", "parcial1", "parcial2"] as const
 type EvalKey = typeof EVAL_KEYS[number]
 
 const EVAL_LABELS: Record<EvalKey, string> = {
-  tp1: "TP 1",
-  tp2: "TP 2",
-  parcial1: "Parcial 1",
-  parcial2: "Parcial 2",
+  tp1: "TP 1", tp2: "TP 2", parcial1: "Parcial 1", parcial2: "Parcial 2",
 }
 
-// Columns hidden on sm (only show name, level, xp + tp1 on mobile)
 const HIDDEN_SM: Record<EvalKey, boolean> = {
-  tp1: false,
-  tp2: true,
-  parcial1: true,
-  parcial2: true,
+  tp1: false, tp2: true, parcial1: true, parcial2: true,
 }
 
 const STATUS_OPTIONS: EvaluationStatus[] = ["Pending", "Victory", "Defeat"]
 
 const STATUS_COLORS: Record<EvaluationStatus, string> = {
-  Victory: "#4ade80",
-  Defeat: "#f87171",
-  Pending: "#facc15",
+  Victory: "#4ade80", Defeat: "#f87171", Pending: "#facc15",
 }
 
-// ─── Use case singleton ───────────────────────────────────────────────────────
+const STATUS_LABELS: Record<EvaluationStatus, string> = {
+  Victory: "Victoria", Defeat: "Derrota", Pending: "Pendiente",
+}
 
-const approveEvalUC = new ApproveEvaluation(new FirestoreEvalRepo(), outboxService)
+const updateGradeUC = new UpdateGrade(outboxService)
 
-// ─── Cell saving state ────────────────────────────────────────────────────────
-
-type CellKey = string // `${uid}-${evalKey}`
+type CellKey = string
 
 interface CellState {
   saving: boolean
   error: boolean
+  pendingStatus?: EvaluationStatus
+  pendingScore?: number
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TeacherPanel() {
   const [students, setStudents] = useState<StudentDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [cellStates, setCellStates] = useState<Record<CellKey, CellState>>({})
 
-  // ── Firestore real-time subscription (students only) ──────────────────────
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "student"))
     const unsub = onSnapshot(q, (snap) => {
@@ -84,42 +69,22 @@ export default function TeacherPanel() {
     return unsub
   }, [])
 
-  // ── Grade update handler ──────────────────────────────────────────────────
-  async function handleGradeChange(
+  async function handleCellChange(
     studentUid: string,
     evalKey: EvalKey,
-    evalId: string,
     newStatus: EvaluationStatus,
-    currentScore: number
-  ) {
-    if (newStatus !== "Victory") return // only Victory triggers ApproveEvaluation
-
-    const cellKey: CellKey = `${studentUid}-${evalKey}`
-    setCellStates((prev) => ({ ...prev, [cellKey]: { saving: true, error: false } }))
-
-    try {
-      await approveEvalUC.execute(evalId, currentScore)
-      setCellStates((prev) => ({ ...prev, [cellKey]: { saving: false, error: false } }))
-    } catch {
-      setCellStates((prev) => ({ ...prev, [cellKey]: { saving: false, error: true } }))
-      // Auto-clear error after 3s
-      setTimeout(() => {
-        setCellStates((prev) => ({ ...prev, [cellKey]: { saving: false, error: false } }))
-      }, 3000)
-    }
-  }
-
-  async function handleScoreChange(
-    studentUid: string,
-    evalKey: EvalKey,
-    evalId: string,
     newScore: number
   ) {
     const cellKey: CellKey = `${studentUid}-${evalKey}`
-    setCellStates((prev) => ({ ...prev, [cellKey]: { saving: true, error: false } }))
+    const evalId = `${studentUid}_${evalKey}`
+
+    setCellStates((prev) => ({
+      ...prev,
+      [cellKey]: { saving: true, error: false, pendingStatus: newStatus, pendingScore: newScore },
+    }))
 
     try {
-      await approveEvalUC.execute(evalId, newScore)
+      await updateGradeUC.execute(evalId, newStatus, newScore)
       setCellStates((prev) => ({ ...prev, [cellKey]: { saving: false, error: false } }))
     } catch {
       setCellStates((prev) => ({ ...prev, [cellKey]: { saving: false, error: true } }))
@@ -140,157 +105,194 @@ export default function TeacherPanel() {
   return (
     <>
       <style>{`
-        /* ── Root ───────────────────────────────────────────────────── */
-        .tp-root {
-          width: 100%;
-          min-height: 100svh;
-          box-sizing: border-box;
-          padding: 1rem;
-          background: var(--bg, #fff);
-          color: var(--text-h, #08060d);
-          font-family: inherit;
+        .tp-root { 
+          width:100%; min-height:100svh; box-sizing:border-box; padding:1.5rem; 
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          font-family:inherit; 
         }
-
-        .tp-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          margin-bottom: 1rem;
-          color: var(--text-h, #08060d);
+        .tp-header {
+          max-width: 1400px;
+          margin: 0 auto 2rem;
+          text-align: center;
         }
-
-        /* ── Table wrapper: horizontal scroll on sm ─────────────────── */
-        .tp-table-wrap {
-          width: 100%;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          border-radius: 10px;
-          border: 1px solid var(--border, #e5e4e7);
+        .tp-title { 
+          font-size:2rem; font-weight:800; margin-bottom:0.5rem; 
+          color: #fff;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
-
-        /* ── Table ──────────────────────────────────────────────────── */
-        .tp-table {
-          width: 100%;
-          border-collapse: collapse;
-          min-width: 480px;
-          font-size: 0.875rem;
+        .tp-subtitle {
+          font-size: 1rem;
+          color: rgba(255,255,255,0.9);
+          font-weight: 500;
         }
-
-        .tp-table th,
-        .tp-table td {
-          padding: 0.625rem 0.75rem;
-          text-align: left;
-          border-bottom: 1px solid var(--border, #e5e4e7);
-          white-space: nowrap;
+        .tp-table-wrap { 
+          max-width: 1400px;
+          margin: 0 auto;
+          overflow-x:auto; 
+          -webkit-overflow-scrolling:touch; 
+          border-radius:16px; 
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          background: #fff;
         }
-
-        .tp-table th {
-          background: var(--code-bg, #f4f3ec);
+        .tp-table { 
+          width:100%; 
+          border-collapse:collapse; 
+          min-width:700px; 
+          font-size:0.9rem; 
+        }
+        .tp-table th, .tp-table td { 
+          padding:1rem 1.25rem; 
+          text-align:left; 
+          border-bottom:1px solid #e5e7eb; 
+        }
+        .tp-table th { 
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          font-weight:700; 
+          font-size:0.85rem; 
+          text-transform:uppercase; 
+          letter-spacing:0.08em; 
+          color: #fff;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
+        .tp-table tbody tr { 
+          transition: background 0.2s ease;
+        }
+        .tp-table tbody tr:hover { 
+          background: #f9fafb;
+        }
+        .tp-table tr:last-child td { border-bottom:none; }
+        .tp-col-sm-hidden { display:none; }
+        @media (min-width:768px) { 
+          .tp-col-sm-hidden { display:table-cell; } 
+          .tp-root { padding:2.5rem; } 
+          .tp-title { font-size:2.5rem; } 
+        }
+        .tp-cell { 
+          display:flex; 
+          flex-direction:column; 
+          gap:0.5rem; 
+          min-width:160px; 
+        }
+        .tp-cell-row {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+        }
+        .tp-select { 
+          flex: 1;
+          min-height:44px; 
+          padding:0.5rem 0.75rem; 
+          border-radius:8px; 
+          border:2px solid #e5e7eb; 
+          background:#fff; 
+          font-size:0.875rem; 
           font-weight: 600;
-          font-size: 0.8rem;
+          cursor:pointer; 
+          box-sizing:border-box; 
+          transition: all 0.2s ease;
+        }
+        .tp-select:hover {
+          border-color: #9ca3af;
+        }
+        .tp-select:focus { 
+          outline:none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .tp-score-input { 
+          width: 70px;
+          min-height:44px; 
+          padding:0.5rem; 
+          border-radius:8px; 
+          border:2px solid #e5e7eb; 
+          background:#fff; 
+          font-size:0.875rem; 
+          font-weight: 600;
+          text-align: center;
+          box-sizing:border-box; 
+          transition: all 0.2s ease;
+        }
+        .tp-score-input:hover {
+          border-color: #9ca3af;
+        }
+        .tp-score-input:focus { 
+          outline:none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .tp-score-label {
+          font-size: 0.7rem;
+          color: #6b7280;
+          font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          color: var(--text, #6b6375);
         }
-
-        .tp-table tr:last-child td {
-          border-bottom: none;
-        }
-
-        .tp-table tr:hover td {
-          background: var(--code-bg, #f4f3ec);
-        }
-
-        /* ── Hide non-critical columns on sm ────────────────────────── */
-        .tp-col-sm-hidden {
-          display: none;
-        }
-
-        @media (min-width: 768px) {
-          .tp-col-sm-hidden {
-            display: table-cell;
-          }
-          .tp-root {
-            padding: 2rem;
-          }
-          .tp-title {
-            font-size: 1.5rem;
-          }
-        }
-
-        /* ── Editable cell ──────────────────────────────────────────── */
-        .tp-cell {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-          min-width: 120px;
-        }
-
-        /* Minimum 44×44px touch target */
-        .tp-select,
-        .tp-score-input {
-          min-height: 44px;
-          min-width: 44px;
-          padding: 0.375rem 0.5rem;
-          border-radius: 6px;
-          border: 1px solid var(--border, #e5e4e7);
-          background: #fff;
-          font-size: 0.875rem;
-          cursor: pointer;
-          box-sizing: border-box;
-          width: 100%;
-        }
-
-        .tp-select:focus,
-        .tp-score-input:focus {
-          outline: 2px solid var(--accent, #aa3bff);
-          outline-offset: 1px;
-        }
-
-        /* ── Status badge ───────────────────────────────────────────── */
-        .tp-status-badge {
-          display: inline-block;
-          padding: 2px 8px;
-          border-radius: 999px;
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #000;
-        }
-
-        /* ── Cell feedback ──────────────────────────────────────────── */
-        .tp-cell-saving {
-          font-size: 0.7rem;
-          color: var(--text, #6b6375);
-          font-style: italic;
-        }
-
-        .tp-cell-error {
-          font-size: 0.7rem;
-          color: #ef4444;
+        .tp-cell-saving { 
+          font-size:0.75rem; 
+          color:#667eea; 
           font-weight: 600;
-        }
-
-        /* ── Loading ────────────────────────────────────────────────── */
-        .tp-loading {
           display: flex;
           align-items: center;
-          justify-content: center;
-          min-height: 100svh;
-          font-size: 1rem;
-          color: var(--text, #6b6375);
+          gap: 0.5rem;
         }
-
-        /* ── Empty state ────────────────────────────────────────────── */
-        .tp-empty {
-          padding: 2rem;
-          text-align: center;
-          color: var(--text, #6b6375);
-          font-size: 0.9rem;
+        .tp-cell-saving::before {
+          content: "⏳";
+        }
+        .tp-cell-error { 
+          font-size:0.75rem; 
+          color:#ef4444; 
+          font-weight:600; 
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .tp-cell-error::before {
+          content: "⚠️";
+        }
+        .tp-student-name {
+          font-weight: 700;
+          font-size: 0.95rem;
+          color: #111827;
+          margin-bottom: 0.25rem;
+        }
+        .tp-student-email {
+          font-size: 0.8rem;
+          color: #6b7280;
+        }
+        .tp-stat {
+          font-weight: 700;
+          font-size: 1.1rem;
+          color: #111827;
+        }
+        .tp-loading { 
+          display:flex; 
+          flex-direction: column;
+          align-items:center; 
+          justify-content:center; 
+          min-height:100svh; 
+          font-size:1.2rem; 
+          color:#fff;
+          gap: 1rem;
+        }
+        .tp-loading::before {
+          content: "⏳";
+          font-size: 3rem;
+        }
+        .tp-empty { 
+          padding:3rem 2rem; 
+          text-align:center; 
+          color:#6b7280; 
+          font-size:1rem; 
         }
       `}</style>
 
       <div className="tp-root">
-        <h1 className="tp-title">Panel del Profesor</h1>
-
+        <div className="tp-header">
+          <h1 className="tp-title">Panel del Profesor</h1>
+          <p className="tp-subtitle">Gestión de evaluaciones y progreso de alumnos</p>
+        </div>
         <div className="tp-table-wrap" role="region" aria-label="Tabla de alumnos" tabIndex={0}>
           <table className="tp-table">
             <thead>
@@ -299,11 +301,7 @@ export default function TeacherPanel() {
                 <th scope="col">Nivel</th>
                 <th scope="col">XP</th>
                 {EVAL_KEYS.map((key) => (
-                  <th
-                    key={key}
-                    scope="col"
-                    className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}
-                  >
+                  <th key={key} scope="col" className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}>
                     {EVAL_LABELS[key]}
                   </th>
                 ))}
@@ -313,7 +311,11 @@ export default function TeacherPanel() {
               {students.length === 0 ? (
                 <tr>
                   <td colSpan={3 + EVAL_KEYS.length}>
-                    <div className="tp-empty">No hay alumnos registrados.</div>
+                    <div className="tp-empty">
+                      No hay alumnos registrados.
+                      <br />
+                      <small>Los alumnos aparecerán aquí cuando se registren en la plataforma.</small>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -322,8 +324,7 @@ export default function TeacherPanel() {
                     key={student.uid}
                     student={student}
                     cellStates={cellStates}
-                    onGradeChange={handleGradeChange}
-                    onScoreChange={handleScoreChange}
+                    onCellChange={handleCellChange}
                   />
                 ))
               )}
@@ -335,53 +336,33 @@ export default function TeacherPanel() {
   )
 }
 
-// ─── StudentRow ───────────────────────────────────────────────────────────────
-
 interface StudentRowProps {
   student: StudentDocument
   cellStates: Record<CellKey, CellState>
-  onGradeChange: (
-    uid: string,
-    evalKey: EvalKey,
-    evalId: string,
-    status: EvaluationStatus,
-    score: number
-  ) => void
-  onScoreChange: (uid: string, evalKey: EvalKey, evalId: string, score: number) => void
+  onCellChange: (uid: string, evalKey: EvalKey, status: EvaluationStatus, score: number) => void
 }
 
-function StudentRow({ student, cellStates, onGradeChange, onScoreChange }: StudentRowProps) {
+function StudentRow({ student, cellStates, onCellChange }: StudentRowProps) {
   const grades = student.gradesSummary ?? {}
-
   return (
     <tr>
       <td>
-        <div style={{ fontWeight: 600 }}>{student.displayName || student.email}</div>
-        <div style={{ fontSize: "0.75rem", color: "var(--text, #6b6375)" }}>{student.email}</div>
+        <div className="tp-student-name">{student.displayName || student.email}</div>
+        <div className="tp-student-email">{student.email}</div>
       </td>
-      <td>{student.level ?? 1}</td>
-      <td>{student.xp ?? 0}</td>
-
+      <td><span className="tp-stat">{student.level ?? 1}</span></td>
+      <td><span className="tp-stat">{student.xp ?? 0}</span></td>
       {EVAL_KEYS.map((key) => {
         const entry = grades[key] as GradeEntry | undefined
         const cellKey: CellKey = `${student.uid}-${key}`
-        const cellState = cellStates[cellKey]
-        // evalId convention: `${uid}_${key}` — matches how evaluations are stored
-        const evalId = `${student.uid}_${key}`
-
         return (
-          <td
-            key={key}
-            className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}
-          >
+          <td key={key} className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}>
             <GradeCell
-              evalId={evalId}
               studentUid={student.uid}
               evalKey={key}
               entry={entry}
-              cellState={cellState}
-              onGradeChange={onGradeChange}
-              onScoreChange={onScoreChange}
+              cellState={cellStates[cellKey]}
+              onCellChange={onCellChange}
             />
           </td>
         )
@@ -390,97 +371,54 @@ function StudentRow({ student, cellStates, onGradeChange, onScoreChange }: Stude
   )
 }
 
-// ─── GradeCell ────────────────────────────────────────────────────────────────
-
 interface GradeCellProps {
-  evalId: string
   studentUid: string
   evalKey: EvalKey
   entry: GradeEntry | undefined
   cellState: CellState | undefined
-  onGradeChange: (
-    uid: string,
-    evalKey: EvalKey,
-    evalId: string,
-    status: EvaluationStatus,
-    score: number
-  ) => void
-  onScoreChange: (uid: string, evalKey: EvalKey, evalId: string, score: number) => void
+  onCellChange: (uid: string, evalKey: EvalKey, status: EvaluationStatus, score: number) => void
 }
 
-function GradeCell({
-  evalId,
-  studentUid,
-  evalKey,
-  entry,
-  cellState,
-  onGradeChange,
-  onScoreChange,
-}: GradeCellProps) {
-  const status: EvaluationStatus = entry?.status ?? "Pending"
-  const score = entry?.score ?? 0
+function GradeCell({ studentUid, evalKey, entry, cellState, onCellChange }: GradeCellProps) {
   const saving = cellState?.saving ?? false
   const error = cellState?.error ?? false
+  const status: EvaluationStatus = (saving && cellState?.pendingStatus) ? cellState.pendingStatus : (entry?.status ?? "Pending")
+  const score = (saving && cellState?.pendingScore !== undefined) ? cellState.pendingScore : (entry?.score ?? 0)
 
   return (
     <div className="tp-cell">
       {saving ? (
-        <>
-          <span
-            className="tp-status-badge"
-            style={{ background: STATUS_COLORS[status] }}
-          >
-            {status}
-          </span>
-          <span className="tp-cell-saving" aria-live="polite">guardando…</span>
-        </>
+        <span className="tp-cell-saving" aria-live="polite">Guardando cambios...</span>
       ) : error ? (
-        <>
-          <span
-            className="tp-status-badge"
-            style={{ background: STATUS_COLORS[status] }}
-          >
-            {status}
-          </span>
-          <span className="tp-cell-error" role="alert">No se pudo guardar</span>
-        </>
-      ) : (
-        <>
-          <select
-            className="tp-select"
-            value={status}
-            aria-label={`Estado de ${evalKey} para alumno`}
-            onChange={(e) =>
-              onGradeChange(
-                studentUid,
-                evalKey,
-                evalId,
-                e.target.value as EvaluationStatus,
-                score
-              )
-            }
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="number"
-            className="tp-score-input"
-            min={0}
-            max={10}
-            step={0.5}
-            value={score}
-            aria-label={`Puntaje de ${evalKey} para alumno`}
-            onChange={(e) =>
-              onScoreChange(studentUid, evalKey, evalId, Number(e.target.value))
-            }
-          />
-        </>
-      )}
+        <span className="tp-cell-error" role="alert">Error al guardar</span>
+      ) : null}
+      
+      <select
+        className="tp-select"
+        value={status}
+        aria-label={`Estado de ${evalKey}`}
+        disabled={saving}
+        onChange={(e) => onCellChange(studentUid, evalKey, e.target.value as EvaluationStatus, score)}
+      >
+        {STATUS_OPTIONS.map((s) => (
+          <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+        ))}
+      </select>
+      
+      <div className="tp-cell-row">
+        <span className="tp-score-label">Nota:</span>
+        <input
+          type="number"
+          className="tp-score-input"
+          min={0}
+          max={10}
+          step={0.5}
+          value={score}
+          disabled={saving}
+          aria-label={`Puntaje de ${evalKey}`}
+          onChange={(e) => onCellChange(studentUid, evalKey, status, Number(e.target.value))}
+        />
+      </div>
     </div>
   )
 }
