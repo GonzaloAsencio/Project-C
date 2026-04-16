@@ -48,6 +48,7 @@ export class OutboxService {
       status: "pending",
       createdAt: Date.now(),
     }
+    console.log('[OutboxService] Enqueuing event:', type, payload)
     await setDoc(doc(this.outboxRef, id), docData)
     await this.processAll()
   }
@@ -55,8 +56,10 @@ export class OutboxService {
   async processAll(): Promise<void> {
     const q = query(this.outboxRef, where("status", "==", "pending"))
     const snapshot = await getDocs(q)
+    console.log('[OutboxService] Processing', snapshot.docs.length, 'pending events')
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data() as OutboxDocument
+      console.log('[OutboxService] Emitting event:', data.type, data.payload)
       this.bus.emit(data.type, data.payload)
       await updateDoc(doc(this.outboxRef, data.id), { status: "processed" })
     }
