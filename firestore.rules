@@ -13,14 +13,18 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
     }
 
-    // users: teachers can read/write; students can only read their own document
+    // users: teachers can read/write all; students can only read their own document
     match /users/{uid} {
+      // A user can always read their own document (avoids deadlock when doc doesn't exist yet)
       allow read: if request.auth != null
         && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher"
-          || request.auth.uid == uid
+          request.auth.uid == uid
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher"
         );
-      allow write: if request.auth != null
+      // A user can create their own document (registration flow)
+      allow create: if request.auth != null && request.auth.uid == uid;
+      // Only teachers can update/delete user documents
+      allow update, delete: if request.auth != null
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
     }
 
