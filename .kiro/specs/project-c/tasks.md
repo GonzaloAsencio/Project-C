@@ -228,6 +228,39 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
   - Publicar las reglas actualizadas en la consola de Firebase
   - _Requirements: 2.3, 4.1_
 
+- [x] 20. Fix: color de texto global
+  - Cambiar el color de texto base en `src/index.css` de `var(--text)` a `#1e293b` para garantizar legibilidad sobre fondos claros
+  - Asegurar que `h1`, `h2`, `p`, `label` y `span` tengan contraste suficiente en todas las páginas
+  - _Requirements: 9.1_
+
+- [x] 21. Historial de asistencia con control de duplicados
+  - Agregar colección `attendance/{classId}` en Firestore con campos: `date`, `createdBy` (uid del profesor), `presentStudents: string[]`
+  - En `TeacherPanel`: botón "Nueva clase" que crea un documento de clase con fecha actual
+  - Por cada clase creada, mostrar checkboxes de presente/ausente por alumno
+  - Al marcar presente: sumar +20 XP al alumno usando `addXPIdempotent` con `evalId = classId_studentUid` para evitar duplicados
+  - Mostrar calendario/lista de clases pasadas con asistencia de cada alumno
+  - _Requirements: 3.7_
+
+- [ ] 22. Ranking de alumnos en TeacherPanel
+  - Agregar sección de ranking en el panel del profesor ordenada por XP descendente
+  - Mostrar posición, avatar (iniciales), nombre, nivel y XP de cada alumno
+  - Destacar visualmente el top 3 (oro, plata, bronce)
+  - _Requirements: 7.5_
+
+- [ ] 23. Pantallas de Victoria y Derrota estilo videojuego
+  - Cuando una evaluación cambia a "Victory": mostrar overlay fullscreen con animación de victoria (cartel "¡VICTORIA!", confetti, botón "Aceptar")
+  - Cuando una evaluación cambia a "Defeat": mostrar overlay fullscreen con animación de derrota (cartel "DERROTA", efecto oscuro, botón "Aceptar")
+  - Defeat no modifica el XP del alumno
+  - El overlay se cierra al presionar "Aceptar" y vuelve al panel normal
+  - _Requirements: 6.4, 5.5_
+
+- [ ] 24. Sprites 2D para personajes y enemigos
+  - Integrar sprites pixel art reales usando spritesheets CSS con `steps()` y `background-position`
+  - Opciones recomendadas de assets gratuitos: itch.io (búscar "RPG character sprite sheet free"), OpenGameArt.org, o Kenney.nl
+  - Reemplazar los emojis del avatar por sprites animados de personaje según `AvatarClass`
+  - Reemplazar los emojis de enemigos por sprites animados según tipo de evaluación
+  - _Requirements: 6.2, 6.3, 9.6_
+
 ## Notes
 
 - Tasks marcadas con `*` son opcionales y pueden omitirse para un MVP más rápido

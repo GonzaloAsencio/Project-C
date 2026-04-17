@@ -5,5 +5,8 @@
 import { db } from "./firebase"
 import { eventBus } from "./EventBus"
 import { OutboxService } from "./OutboxService"
+import { FirestoreProgressRepo } from "../gamification/infrastructure/FirestoreProgressRepo"
+import { AttendanceService } from "../academic/application/AttendanceService"
 
 export const outboxService = new OutboxService(db, eventBus)
+export const attendanceService = new AttendanceService(new FirestoreProgressRepo())
