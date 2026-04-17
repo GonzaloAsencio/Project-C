@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { collection, onSnapshot, query, where } from "firebase/firestore"
+import type { FirestoreError } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { outboxService, attendanceService } from "../../shared/services"
 import { UpdateGrade } from "../application/UpdateGrade"
@@ -45,6 +46,8 @@ export default function TeacherPanel() {
   const { user } = useAuth()
   const [students, setStudents] = useState<StudentDocument[]>([])
   const [loading, setLoading] = useState(true)
+  const [studentsError, setStudentsError] = useState<string | null>(null)
+  const [attendanceError, setAttendanceError] = useState<string | null>(null)
   const [cellStates, setCellStates] = useState<Record<CellKey, CellState>>({})
   const [sessions, setSessions] = useState<ClassSession[]>([])
   const [creatingSession, setCreatingSession] = useState(false)
@@ -54,15 +57,41 @@ export default function TeacherPanel() {
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "student"))
-    const unsub = onSnapshot(q, (snap) => {
-      setStudents(snap.docs.map((d) => ({ uid: d.id, ...(d.data() as Omit<StudentDocument, "uid">) })))
-      setLoading(false)
-    })
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setStudents(snap.docs.map((d) => ({ uid: d.id, ...(d.data() as Omit<StudentDocument, "uid">) })))
+        setLoading(false)
+        setStudentsError(null)
+      },
+      (err: FirestoreError) => {
+        console.error("[TeacherPanel] students onSnapshot error:", err.code, err.message)
+        setLoading(false)
+        setStudentsError(
+          err.code === "permission-denied"
+            ? "Sin permisos para ver los alumnos. Verificá tu rol."
+            : "Error de conexión al cargar alumnos."
+        )
+      }
+    )
     return unsub
   }, [])
 
   useEffect(() => {
-    const unsub = attendanceService.subscribeToSessions(setSessions)
+    const unsub = attendanceService.subscribeToSessions(
+      (sessions) => {
+        setSessions(sessions)
+        setAttendanceError(null)
+      },
+      (err: FirestoreError) => {
+        console.error("[TeacherPanel] attendance onSnapshot error:", err.code, err.message)
+        setAttendanceError(
+          err.code === "permission-denied"
+            ? "Sin permisos para ver las clases."
+            : "Error de conexión al cargar asistencia."
+        )
+      }
+    )
     return unsub
   }, [])
 
@@ -275,6 +304,18 @@ export default function TeacherPanel() {
         </div>
 
         <div className="tp-content">
+          {/* Error banners */}
+          {studentsError && (
+            <div style={{ marginBottom: "1rem", padding: "0.875rem 1.25rem", borderRadius: "12px", background: "#fee2e2", border: "1.5px solid #fca5a5", color: "#b91c1c", fontWeight: 600, fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span>⚠️</span> {studentsError}
+            </div>
+          )}
+          {attendanceError && activeTab === "attendance" && (
+            <div style={{ marginBottom: "1rem", padding: "0.875rem 1.25rem", borderRadius: "12px", background: "#fee2e2", border: "1.5px solid #fca5a5", color: "#b91c1c", fontWeight: 600, fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span>⚠️</span> {attendanceError}
+            </div>
+          )}
+
           {/* Tabs */}
           <div className="tp-tabs">
             <button

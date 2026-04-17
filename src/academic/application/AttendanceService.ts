@@ -9,6 +9,7 @@ import {
   Timestamp,
   updateDoc,
 } from "firebase/firestore"
+import type { FirestoreError } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { FirestoreProgressRepo } from "../../gamification/infrastructure/FirestoreProgressRepo"
 
@@ -76,20 +77,28 @@ export class AttendanceService {
 
   /** Subscribe to all sessions ordered by date descending. */
   subscribeToSessions(
-    onUpdate: (sessions: ClassSession[]) => void
+    onUpdate: (sessions: ClassSession[]) => void,
+    onError?: (err: FirestoreError) => void
   ): () => void {
     const q = query(collection(db, "attendance"), orderBy("date", "desc"))
-    return onSnapshot(q, (snap) => {
-      const sessions: ClassSession[] = snap.docs.map((d) => {
-        const data = d.data()
-        return {
-          id: d.id,
-          date: (data.date as Timestamp).toDate(),
-          createdBy: data.createdBy as string,
-          presentStudents: (data.presentStudents as string[]) ?? [],
-        }
-      })
-      onUpdate(sessions)
-    })
+    return onSnapshot(
+      q,
+      (snap) => {
+        const sessions: ClassSession[] = snap.docs.map((d) => {
+          const data = d.data()
+          return {
+            id: d.id,
+            date: (data.date as Timestamp).toDate(),
+            createdBy: data.createdBy as string,
+            presentStudents: (data.presentStudents as string[]) ?? [],
+          }
+        })
+        onUpdate(sessions)
+      },
+      (err) => {
+        console.error("[AttendanceService] onSnapshot error:", err.code, err.message)
+        onError?.(err)
+      }
+    )
   }
 }

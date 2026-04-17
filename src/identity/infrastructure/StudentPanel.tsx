@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { doc, onSnapshot } from "firebase/firestore"
+import type { FirestoreError } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { useAuth } from "../../shared/AuthContext"
 import { eventBus } from "../../shared/EventBus"
@@ -46,38 +47,51 @@ export default function StudentPanel() {
   const [userData, setUserData] = useState<UserDocument | null>(null)
   const [victoryAnim, setVictoryAnim] = useState(false)
   const [overlay, setOverlay] = useState<{ type: "victory" | "defeat"; label: string } | null>(null)
+  const [snapshotError, setSnapshotError] = useState<string | null>(null)
   const prevGradesRef = useRef<Record<string, GradeEntry>>({})
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!user) return
-    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
-      if (snap.exists()) {
-        const newData = snap.data() as UserDocument
-        const prev = prevGradesRef.current
-        const next = newData.gradesSummary ?? {}
+    const unsub = onSnapshot(
+      doc(db, "users", user.uid),
+      (snap) => {
+        if (snap.exists()) {
+          const newData = snap.data() as UserDocument
+          const prev = prevGradesRef.current
+          const next = newData.gradesSummary ?? {}
 
-        // Detect transitions to Victory or Defeat
-        for (const key of EVAL_KEYS) {
-          const prevStatus = prev[key]?.status
-          const nextStatus = next[key]?.status
-          if (prevStatus === "Pending" && nextStatus === "Victory") {
-            setOverlay({ type: "victory", label: EVAL_LABELS[key] })
-            import("canvas-confetti").then((m) =>
-              m.default({ particleCount: 180, spread: 100, origin: { y: 0.5 } })
-            )
-            break
+          // Detect transitions to Victory or Defeat
+          for (const key of EVAL_KEYS) {
+            const prevStatus = prev[key]?.status
+            const nextStatus = next[key]?.status
+            if (prevStatus === "Pending" && nextStatus === "Victory") {
+              setOverlay({ type: "victory", label: EVAL_LABELS[key] })
+              import("canvas-confetti").then((m) =>
+                m.default({ particleCount: 180, spread: 100, origin: { y: 0.5 } })
+              )
+              break
+            }
+            if (prevStatus === "Pending" && nextStatus === "Defeat") {
+              setOverlay({ type: "defeat", label: EVAL_LABELS[key] })
+              break
+            }
           }
-          if (prevStatus === "Pending" && nextStatus === "Defeat") {
-            setOverlay({ type: "defeat", label: EVAL_LABELS[key] })
-            break
-          }
+
+          prevGradesRef.current = next
+          setUserData(newData)
+          setSnapshotError(null)
         }
-
-        prevGradesRef.current = next
-        setUserData(newData)
+      },
+      (err: FirestoreError) => {
+        console.error("[StudentPanel] onSnapshot error:", err.code, err.message)
+        setSnapshotError(
+          err.code === "permission-denied"
+            ? "Sin permisos para acceder a tu perfil. Intentá cerrar sesión y volver a entrar."
+            : "Error de conexión. Verificá tu internet e intentá de nuevo."
+        )
       }
-    })
+    )
     return unsub
   }, [user])
 
@@ -103,6 +117,18 @@ export default function StudentPanel() {
   const pendingEvalKey = EVAL_KEYS.find((k) => grades[k]?.status === "Pending")
 
   if (!user) return <div className="sp-loading">Cargando…</div>
+  if (snapshotError) return (
+    <div className="sp-loading" style={{ flexDirection: "column", gap: "0.75rem", padding: "2rem", textAlign: "center" }}>
+      <span style={{ fontSize: "2rem" }}>⚠️</span>
+      <span style={{ color: "#ef4444", fontWeight: 700 }}>{snapshotError}</span>
+      <button
+        onClick={logout}
+        style={{ marginTop: "0.5rem", padding: "0.5rem 1.5rem", borderRadius: "8px", border: "none", background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}
+      >
+        Cerrar sesión
+      </button>
+    </div>
+  )
   if (!userData) return <div className="sp-loading">Cargando tu perfil…</div>
 
   const avatarCfg = AVATAR_CONFIG[userData.avatarClass] ?? AVATAR_CONFIG.Magic

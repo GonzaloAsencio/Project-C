@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom"
 import type { ReactNode } from "react"
 import { useAuth } from "./AuthContext"
+import { LoadingScreen } from "./LoadingScreen"
 import type { Role } from "../identity"
 
 interface RouteGuardProps {
@@ -12,7 +13,7 @@ export function RouteGuard({ requiredRole, children }: RouteGuardProps) {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return <div>Cargando...</div>
+    return <LoadingScreen />
   }
 
   if (!user) {

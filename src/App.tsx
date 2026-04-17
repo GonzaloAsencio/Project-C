@@ -2,6 +2,8 @@ import { lazy, Suspense } from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider } from "./shared/AuthContext"
 import { RouteGuard } from "./shared/RouteGuard"
+import { LoadingScreen } from "./shared/LoadingScreen"
+import { ErrorBoundary } from "./shared/ErrorBoundary"
 import AuthUI from "./identity/infrastructure/AuthUI"
 
 const StudentPanel = lazy(() => import("./identity/infrastructure/StudentPanel"))
@@ -11,7 +13,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Suspense fallback={<div>Cargando...</div>}>
+        <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<AuthUI />} />
@@ -19,7 +21,9 @@ function App() {
               path="/student"
               element={
                 <RouteGuard requiredRole="student">
-                  <StudentPanel />
+                  <ErrorBoundary>
+                    <StudentPanel />
+                  </ErrorBoundary>
                 </RouteGuard>
               }
             />
@@ -27,7 +31,9 @@ function App() {
               path="/teacher"
               element={
                 <RouteGuard requiredRole="teacher">
-                  <TeacherPanel />
+                  <ErrorBoundary>
+                    <TeacherPanel />
+                  </ErrorBoundary>
                 </RouteGuard>
               }
             />
