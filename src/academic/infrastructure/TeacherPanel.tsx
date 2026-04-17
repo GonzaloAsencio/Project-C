@@ -6,8 +6,10 @@ import { useLogout } from "../../shared/useLogout"
 import { useAuth } from "../../shared/AuthContext"
 import type { EvaluationStatus } from "../domain/Evaluation"
 import { useTeacherData } from "./useTeacherData"
+import type { StudentDocument } from "./useTeacherData"
 import StudentRow, { EVAL_KEYS, EVAL_LABELS, HIDDEN_SM } from "./StudentRow"
 import AttendanceSession from "./AttendanceSession"
+import StudentDetailModal from "./StudentDetailModal"
 import type { CellState } from "./GradeCell"
 import styles from "./TeacherPanel.module.css"
 
@@ -36,6 +38,7 @@ export default function TeacherPanel() {
   const [creatingSession, setCreatingSession] = useState(false)
   const [checkStates, setCheckStates] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<"grades" | "attendance">("grades")
+  const [detailStudent, setDetailStudent] = useState<StudentDocument | null>(null)
 
   async function handleCreateSession() {
     if (!user) return
@@ -82,6 +85,12 @@ export default function TeacherPanel() {
 
   return (
     <div className={styles.root}>
+      {detailStudent && (
+        <StudentDetailModal
+          student={detailStudent}
+          onClose={() => setDetailStudent(null)}
+        />
+      )}
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
           <h1 className={styles.title}>🎓 Panel del Profesor</h1>
@@ -151,12 +160,13 @@ export default function TeacherPanel() {
                         {EVAL_LABELS[key]}
                       </th>
                     ))}
+                    <th scope="col"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={3 + EVAL_KEYS.length}>
+                      <td colSpan={4 + EVAL_KEYS.length}>
                         <div className={styles.empty}>
                           <div className={styles.emptyIcon}>{filterText ? "🔍" : "🎒"}</div>
                           <div className={styles.emptyTitle}>
@@ -177,6 +187,7 @@ export default function TeacherPanel() {
                         student={student}
                         cellStates={cellStates}
                         onCellChange={handleCellChange}
+                        onViewDetails={setDetailStudent}
                       />
                     ))
                   )}

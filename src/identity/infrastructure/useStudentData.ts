@@ -3,8 +3,11 @@ import { doc, onSnapshot } from "firebase/firestore"
 import type { FirestoreError } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { useAuth } from "../../shared/AuthContext"
+import { ReconcileGrades } from "../../academic/application/ReconcileGrades"
 import type { AvatarClass } from "../domain/User"
 import type { EvaluationStatus } from "../../academic/domain/Evaluation"
+
+const reconcileGrades = new ReconcileGrades()
 
 export interface GradeEntry { status: EvaluationStatus; score: number }
 
@@ -43,6 +46,7 @@ export function useStudentData(): StudentDataResult {
   const [overlay, setOverlay] = useState<{ type: "victory" | "defeat"; label: string } | null>(null)
   const [snapshotError, setSnapshotError] = useState<string | null>(null)
   const prevGradesRef = useRef<Record<string, GradeEntry>>({})
+  const reconciling = useRef(false)
 
   useEffect(() => {
     if (!user) return
@@ -73,6 +77,17 @@ export function useStudentData(): StudentDataResult {
           prevGradesRef.current = next
           setUserData(newData)
           setSnapshotError(null)
+
+          // Trigger reconciliation once if summary is empty but student already has XP
+          // (indicates a desync between evaluations collection and gradesSummary)
+          const summaryEmpty = Object.keys(next).length === 0
+          const hasProgress = (newData.xp ?? 0) > 0
+          if (summaryEmpty && hasProgress && !reconciling.current) {
+            reconciling.current = true
+            reconcileGrades.execute(snap.id).catch((err) =>
+              console.error("[useStudentData] reconcile failed:", err)
+            )
+          }
         }
       },
       (err: FirestoreError) => {

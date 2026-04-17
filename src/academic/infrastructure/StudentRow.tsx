@@ -16,9 +16,10 @@ interface StudentRowProps {
   student: StudentDocument
   cellStates: Record<string, CellState>
   onCellChange: (uid: string, evalKey: EvalKey, status: EvaluationStatus, score: number) => void
+  onViewDetails: (student: StudentDocument) => void
 }
 
-export default function StudentRow({ student, cellStates, onCellChange }: StudentRowProps) {
+export default function StudentRow({ student, cellStates, onCellChange, onViewDetails }: StudentRowProps) {
   const grades = student.gradesSummary ?? {}
   const initials = (student.displayName || student.email).slice(0, 2).toUpperCase()
 
@@ -46,6 +47,11 @@ export default function StudentRow({ student, cellStates, onCellChange }: Studen
           />
         </td>
       ))}
+      <td>
+        <button className={styles.detailBtn} onClick={() => onViewDetails(student)}>
+          Ver detalles
+        </button>
+      </td>
     </tr>
   )
 }
