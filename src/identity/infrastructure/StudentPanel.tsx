@@ -78,22 +78,9 @@ export default function StudentPanel() {
   const avatarCfg = AVATAR_CONFIG[userData.avatarClass] ?? AVATAR_CONFIG.Magic
 
   return (
-    <>
+    <div style={{ display:"flex", flexDirection:"column", minHeight:"100svh", background: combatMode ? "linear-gradient(160deg,#0d0d1a,#1a0a2e,#0d1a0d)" : "linear-gradient(160deg,#f0f4ff,#faf0ff,#fff0f9)", transition:"background 0.6s ease" }}>
       <style>{`
         * { box-sizing: border-box; }
-
-        .sp-root {
-          width: 100%;
-          min-height: 100svh;
-          padding: 1.5rem 1rem;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1.5rem;
-          background: linear-gradient(160deg, #f0f4ff 0%, #faf0ff 50%, #fff0f9 100%);
-          transition: background 0.6s ease, color 0.3s ease;
-          font-family: inherit;
-        }
 
         .sp-root--dungeon {
           background: linear-gradient(160deg, #0d0d1a 0%, #1a0a2e 50%, #0d1a0d 100%);
@@ -260,20 +247,20 @@ export default function StudentPanel() {
           width: 100%;
           display: flex; align-items: center; justify-content: space-between;
           padding: 0.75rem 1.5rem;
-          background: rgba(255,255,255,0.7);
+          background: rgba(255,255,255,0.85);
           backdrop-filter: blur(12px);
           border-bottom: 1px solid rgba(0,0,0,0.06);
           position: sticky; top: 0; z-index: 50;
         }
-        .sp-root--dungeon .sp-navbar {
-          background: rgba(13,13,26,0.8);
+        .sp-navbar--dungeon {
+          background: rgba(13,13,26,0.9);
           border-bottom-color: rgba(255,255,255,0.08);
         }
         .sp-navbar-brand {
           font-size: 1rem; font-weight: 800; color: #1e1b4b;
           display: flex; align-items: center; gap: 0.4rem;
         }
-        .sp-root--dungeon .sp-navbar-brand { color: #f1f5f9; }
+        .sp-navbar--dungeon .sp-navbar-brand { color: #f1f5f9; }
         .sp-logout-btn {
           padding: 0.4rem 1rem;
           border-radius: 8px; border: 1.5px solid rgba(168,85,247,0.3);
@@ -281,14 +268,22 @@ export default function StudentPanel() {
           font-size: 0.8rem; font-weight: 700; cursor: pointer;
           transition: all 0.2s ease;
         }
-        .sp-logout-btn:hover {
-          background: rgba(168,85,247,0.1); border-color: #a855f7;
-        }
-        .sp-root--dungeon .sp-logout-btn {
-          color: #c084fc; border-color: rgba(192,132,252,0.3);
-        }
+        .sp-logout-btn:hover { background: rgba(168,85,247,0.1); border-color: #a855f7; }
+        .sp-navbar--dungeon .sp-logout-btn { color: #c084fc; border-color: rgba(192,132,252,0.3); }
 
-        /* ── Left/Right cols — stacked on mobile ── */
+        /* ── Root — no incluye navbar ── */
+        .sp-root {
+          width: 100%;
+          flex: 1;
+          padding: 1.5rem 1rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1.5rem;
+          background: linear-gradient(160deg, #f0f4ff 0%, #faf0ff 50%, #fff0f9 100%);
+          transition: background 0.6s ease, color 0.3s ease;
+          font-family: inherit;
+        }
         .sp-left-col {
           display: flex;
           flex-direction: column;
@@ -367,15 +362,16 @@ export default function StudentPanel() {
         </div>
       )}
 
+      {/* ── Navbar — fuera del sp-root para no romper el flex layout ── */}
+      <nav className={`sp-navbar${combatMode ? " sp-navbar--dungeon" : ""}`}>
+        <span className="sp-navbar-brand">🎮 Project-C</span>
+        <button className="sp-logout-btn" onClick={logout}>Cerrar sesión</button>
+      </nav>
+
       <div
         ref={panelRef}
         className={`sp-root${combatMode ? " sp-root--dungeon" : ""}`}
       >
-        {/* ── Navbar ── */}
-        <nav className="sp-navbar">
-          <span className="sp-navbar-brand">🎮 Project-C</span>
-          <button className="sp-logout-btn" onClick={logout}>Cerrar sesión</button>
-        </nav>
         {/* ── Left column (desktop) / stacked (mobile) ── */}
         <div className="sp-left-col">
           {/* ── Header: Avatar + nombre + clase ── */}
@@ -446,6 +442,6 @@ export default function StudentPanel() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }
