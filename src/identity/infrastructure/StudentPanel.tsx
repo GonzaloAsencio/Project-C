@@ -45,12 +45,38 @@ export default function StudentPanel() {
   const logout = useLogout()
   const [userData, setUserData] = useState<UserDocument | null>(null)
   const [victoryAnim, setVictoryAnim] = useState(false)
+  const [overlay, setOverlay] = useState<{ type: "victory" | "defeat"; label: string } | null>(null)
+  const prevGradesRef = useRef<Record<string, GradeEntry>>({})
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!user) return
     const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
-      if (snap.exists()) setUserData(snap.data() as UserDocument)
+      if (snap.exists()) {
+        const newData = snap.data() as UserDocument
+        const prev = prevGradesRef.current
+        const next = newData.gradesSummary ?? {}
+
+        // Detect transitions to Victory or Defeat
+        for (const key of EVAL_KEYS) {
+          const prevStatus = prev[key]?.status
+          const nextStatus = next[key]?.status
+          if (prevStatus === "Pending" && nextStatus === "Victory") {
+            setOverlay({ type: "victory", label: EVAL_LABELS[key] })
+            import("canvas-confetti").then((m) =>
+              m.default({ particleCount: 180, spread: 100, origin: { y: 0.5 } })
+            )
+            break
+          }
+          if (prevStatus === "Pending" && nextStatus === "Defeat") {
+            setOverlay({ type: "defeat", label: EVAL_LABELS[key] })
+            break
+          }
+        }
+
+        prevGradesRef.current = next
+        setUserData(newData)
+      }
     })
     return unsub
   }, [user])
@@ -68,7 +94,11 @@ export default function StudentPanel() {
     return () => eventBus.off<EvaluationApprovedPayload>("EvaluationApproved", handleEvaluationApproved)
   }, [user])
 
-  const grades = userData?.gradesSummary ?? {}
+  const rawGrades = userData?.gradesSummary ?? {}
+  // If gradesSummary is empty (newly registered student), default all evals to Pending
+  const grades: Record<string, GradeEntry> = Object.keys(rawGrades).length === 0
+    ? Object.fromEntries(EVAL_KEYS.map((k) => [k, { status: "Pending" as EvaluationStatus, score: 0 }]))
+    : rawGrades
   const combatMode = EVAL_KEYS.some((k) => grades[k]?.status === "Pending")
   const pendingEvalKey = EVAL_KEYS.find((k) => grades[k]?.status === "Pending")
 
@@ -242,6 +272,58 @@ export default function StudentPanel() {
           min-height: 100svh; font-size: 1rem; color: #6b7280;
         }
 
+        /* ── Victory / Defeat overlay ── */
+        .sp-overlay {
+          position: fixed; inset: 0; z-index: 300;
+          display: flex; align-items: center; justify-content: center;
+          animation: overlay-in 0.3s ease;
+        }
+        @keyframes overlay-in {
+          from { opacity: 0; } to { opacity: 1; }
+        }
+        .sp-overlay--victory { background: rgba(0,0,0,0.7); }
+        .sp-overlay--defeat  { background: rgba(0,0,0,0.88); }
+        .sp-overlay-card {
+          display: flex; flex-direction: column; align-items: center; gap: 1rem;
+          padding: 2.5rem 3rem; border-radius: 24px;
+          text-align: center;
+          animation: card-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes card-pop {
+          from { transform: scale(0.7); opacity: 0; }
+          to   { transform: scale(1);   opacity: 1; }
+        }
+        .sp-overlay--victory .sp-overlay-card {
+          background: linear-gradient(135deg, #0f2027, #1a3a1a);
+          border: 2px solid #4ade80;
+          box-shadow: 0 0 60px rgba(74,222,128,0.3);
+        }
+        .sp-overlay--defeat .sp-overlay-card {
+          background: linear-gradient(135deg, #1a0000, #2d0000);
+          border: 2px solid #ef4444;
+          box-shadow: 0 0 60px rgba(239,68,68,0.3);
+        }
+        .sp-overlay-icon { font-size: 4rem; animation: icon-bounce 0.6s ease 0.2s both; }
+        @keyframes icon-bounce {
+          from { transform: scale(0) rotate(-20deg); }
+          to   { transform: scale(1) rotate(0deg); }
+        }
+        .sp-overlay-title {
+          font-size: 2.5rem; font-weight: 900; letter-spacing: 0.1em; margin: 0;
+        }
+        .sp-overlay--victory .sp-overlay-title { color: #4ade80; text-shadow: 0 0 20px rgba(74,222,128,0.6); }
+        .sp-overlay--defeat  .sp-overlay-title { color: #ef4444; text-shadow: 0 0 20px rgba(239,68,68,0.6); }
+        .sp-overlay-sub { font-size: 1rem; color: #94a3b8; margin: 0; }
+        .sp-overlay-btn {
+          margin-top: 0.5rem; padding: 0.75rem 2.5rem;
+          border-radius: 12px; border: none;
+          font-size: 1rem; font-weight: 800; cursor: pointer;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .sp-overlay-btn:hover { transform: scale(1.05); }
+        .sp-overlay--victory .sp-overlay-btn { background: #4ade80; color: #000; box-shadow: 0 4px 20px rgba(74,222,128,0.4); }
+        .sp-overlay--defeat  .sp-overlay-btn { background: #ef4444; color: #fff; box-shadow: 0 4px 20px rgba(239,68,68,0.4); }
+
         /* ── Navbar ── */
         .sp-navbar {
           width: 100%;
@@ -359,6 +441,24 @@ export default function StudentPanel() {
       {victoryAnim && (
         <div className="sp-victory-banner" role="alert">
           ¡Victoria! 🎉 +{userData.xp} XP
+        </div>
+      )}
+
+      {/* ── Victory / Defeat overlay ── */}
+      {overlay && (
+        <div className={`sp-overlay sp-overlay--${overlay.type}`} role="dialog" aria-modal="true" aria-label={overlay.type === "victory" ? "Victoria" : "Derrota"}>
+          <div className="sp-overlay-card">
+            <div className="sp-overlay-icon">{overlay.type === "victory" ? "🏆" : "💀"}</div>
+            <h2 className="sp-overlay-title">{overlay.type === "victory" ? "¡VICTORIA!" : "DERROTA"}</h2>
+            <p className="sp-overlay-sub">{overlay.label}</p>
+            <button
+              className="sp-overlay-btn"
+              onClick={() => setOverlay(null)}
+              autoFocus
+            >
+              Aceptar
+            </button>
+          </div>
         </div>
       )}
 

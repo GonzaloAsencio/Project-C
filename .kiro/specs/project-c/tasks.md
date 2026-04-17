@@ -208,22 +208,22 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
 - [x] 15. Checkpoint final — Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 16. Seed de evaluaciones al registrar alumno
+- [x] 16. Seed de evaluaciones al registrar alumno
   - Al crear un alumno via `FirebaseAuthAdapter.register()`, crear los 4 documentos en `evaluations` con IDs `{uid}_tp1`, `{uid}_tp2`, `{uid}_parcial1`, `{uid}_parcial2`
   - Cada documento con `status: "Pending"`, `score: 0`, `studentUid`, `type` y `index` correctos
   - Actualizar `firestore.rules` para permitir `create` en `evaluations` cuando `request.auth.uid == request.resource.data.studentUid`
   - _Requirements: 4.1, 6.1_
 
-- [ ] 17. Fix ApproveEvaluation: upsert en lugar de update
+- [x] 17. Fix ApproveEvaluation: upsert en lugar de update
   - Cambiar `tx.update(evalRef, ...)` por `tx.set(evalRef, ..., { merge: true })` para que funcione aunque el documento no exista
   - _Requirements: 4.1, 4.2_
 
-- [ ] 18. StudentPanel: estado vacío y datos iniciales
+- [x] 18. StudentPanel: estado vacío y datos iniciales
   - Cuando `gradesSummary` está vacío, mostrar las 4 cards de evaluación con estado "Pending" por defecto en lugar de pantalla en blanco
   - Asegurar que el panel muestra algo útil para un alumno recién registrado
   - _Requirements: 5.1, 5.2, 6.1_
 
-- [ ] 19. Fix Firestore Rules: permitir seed de evaluaciones en registro
+- [x] 19. Fix Firestore Rules: permitir seed de evaluaciones en registro
   - Agregar regla `allow create` en `evaluations` para que el propio alumno pueda crear sus documentos iniciales durante el registro (`request.auth.uid == request.resource.data.studentUid`)
   - Publicar las reglas actualizadas en la consola de Firebase
   - _Requirements: 2.3, 4.1_
@@ -240,12 +240,6 @@ Implementación incremental de la aplicación web gamificada Project-C usando Re
   - Al marcar presente: sumar +20 XP al alumno usando `addXPIdempotent` con `evalId = classId_studentUid` para evitar duplicados
   - Mostrar calendario/lista de clases pasadas con asistencia de cada alumno
   - _Requirements: 3.7_
-
-- [ ] 22. Ranking de alumnos en TeacherPanel
-  - Agregar sección de ranking en el panel del profesor ordenada por XP descendente
-  - Mostrar posición, avatar (iniciales), nombre, nivel y XP de cada alumno
-  - Destacar visualmente el top 3 (oro, plata, bronce)
-  - _Requirements: 7.5_
 
 - [ ] 23. Pantallas de Victoria y Derrota estilo videojuego
   - Cuando una evaluación cambia a "Victory": mostrar overlay fullscreen con animación de victoria (cartel "¡VICTORIA!", confetti, botón "Aceptar")
