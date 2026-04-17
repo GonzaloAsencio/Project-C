@@ -3,6 +3,7 @@ import { doc, onSnapshot } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { useAuth } from "../../shared/AuthContext"
 import { eventBus } from "../../shared/EventBus"
+import { useLogout } from "../../shared/useLogout"
 import XPBar from "../../gamification/infrastructure/XPBar"
 import EnemySprite from "../../academic/infrastructure/EnemySprite"
 import type { AvatarClass } from "../domain/User"
@@ -41,6 +42,7 @@ const AVATAR_CONFIG: Record<AvatarClass, { emoji: string; color: string; gradien
 
 export default function StudentPanel() {
   const { user } = useAuth()
+  const logout = useLogout()
   const [userData, setUserData] = useState<UserDocument | null>(null)
   const [victoryAnim, setVictoryAnim] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -253,6 +255,39 @@ export default function StudentPanel() {
           min-height: 100svh; font-size: 1rem; color: #6b7280;
         }
 
+        /* ── Navbar ── */
+        .sp-navbar {
+          width: 100%;
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 0.75rem 1.5rem;
+          background: rgba(255,255,255,0.7);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(0,0,0,0.06);
+          position: sticky; top: 0; z-index: 50;
+        }
+        .sp-root--dungeon .sp-navbar {
+          background: rgba(13,13,26,0.8);
+          border-bottom-color: rgba(255,255,255,0.08);
+        }
+        .sp-navbar-brand {
+          font-size: 1rem; font-weight: 800; color: #1e1b4b;
+          display: flex; align-items: center; gap: 0.4rem;
+        }
+        .sp-root--dungeon .sp-navbar-brand { color: #f1f5f9; }
+        .sp-logout-btn {
+          padding: 0.4rem 1rem;
+          border-radius: 8px; border: 1.5px solid rgba(168,85,247,0.3);
+          background: transparent; color: #a855f7;
+          font-size: 0.8rem; font-weight: 700; cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .sp-logout-btn:hover {
+          background: rgba(168,85,247,0.1); border-color: #a855f7;
+        }
+        .sp-root--dungeon .sp-logout-btn {
+          color: #c084fc; border-color: rgba(192,132,252,0.3);
+        }
+
         /* ── Left/Right cols — stacked on mobile ── */
         .sp-left-col {
           display: flex;
@@ -336,6 +371,11 @@ export default function StudentPanel() {
         ref={panelRef}
         className={`sp-root${combatMode ? " sp-root--dungeon" : ""}`}
       >
+        {/* ── Navbar ── */}
+        <nav className="sp-navbar">
+          <span className="sp-navbar-brand">🎮 Project-C</span>
+          <button className="sp-logout-btn" onClick={logout}>Cerrar sesión</button>
+        </nav>
         {/* ── Left column (desktop) / stacked (mobile) ── */}
         <div className="sp-left-col">
           {/* ── Header: Avatar + nombre + clase ── */}

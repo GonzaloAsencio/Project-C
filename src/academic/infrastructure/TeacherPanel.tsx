@@ -3,6 +3,10 @@ import { collection, onSnapshot, query, where } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { outboxService } from "../../shared/services"
 import { UpdateGrade } from "../application/UpdateGrade"
+import { useLogout } from "../../shared/useLogout"
+import { AddXP } from "../../gamification/application/AddXP"
+import { FirestoreProgressRepo } from "../../gamification/infrastructure/FirestoreProgressRepo"
+import { eventBus } from "../../shared/EventBus"
 import type { EvaluationStatus } from "../domain/Evaluation"
 
 interface GradeEntry { status: EvaluationStatus; score: number }
@@ -31,6 +35,7 @@ const STATUS_COLORS: Record<EvaluationStatus, { bg: string; text: string }> = {
 }
 
 const updateGradeUC = new UpdateGrade(outboxService)
+const addXPUC = new AddXP(new FirestoreProgressRepo(), eventBus)
 
 type CellKey = string
 interface CellState {
@@ -42,6 +47,8 @@ export default function TeacherPanel() {
   const [students, setStudents] = useState<StudentDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [cellStates, setCellStates] = useState<Record<CellKey, CellState>>({})
+  const [attendanceStates, setAttendanceStates] = useState<Record<string, boolean>>({})
+  const logout = useLogout()
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "student"))
@@ -51,6 +58,15 @@ export default function TeacherPanel() {
     })
     return unsub
   }, [])
+
+  async function handleAttendance(studentUid: string) {
+    setAttendanceStates((p) => ({ ...p, [studentUid]: true }))
+    try {
+      await addXPUC.execute(studentUid, 20)
+    } finally {
+      setTimeout(() => setAttendanceStates((p) => ({ ...p, [studentUid]: false })), 1500)
+    }
+  }
 
   async function handleCellChange(studentUid: string, evalKey: EvalKey, newStatus: EvaluationStatus, newScore: number) {
     const cellKey: CellKey = `${studentUid}-${evalKey}`
@@ -87,7 +103,28 @@ export default function TeacherPanel() {
           display: flex; align-items: center; justify-content: space-between;
           box-shadow: 0 4px 24px rgba(0,0,0,0.2);
         }
-        .tp-topbar-left { display: flex; flex-direction: column; gap: 0.2rem; }
+        .tp-logout-btn {
+          padding: 0.4rem 1rem;
+          border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.3);
+          background: transparent; color: rgba(255,255,255,0.9);
+          font-size: 0.8rem; font-weight: 700; cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .tp-logout-btn:hover { background: rgba(255,255,255,0.15); border-color: #fff; }
+        .tp-attendance-btn {
+          padding: 0.4rem 0.75rem;
+          border-radius: 8px; border: none;
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: #fff; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+          transition: all 0.2s ease; white-space: nowrap;
+          box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+        }
+        .tp-attendance-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.4); }
+        .tp-attendance-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .tp-attendance-done {
+          font-size: 0.8rem; font-weight: 700; color: #10b981;
+          display: flex; align-items: center; gap: 0.3rem;
+        }        .tp-topbar-left { display: flex; flex-direction: column; gap: 0.2rem; }
         .tp-title {
           font-size: 1.5rem; font-weight: 800; color: #fff; margin: 0;
           letter-spacing: -0.02em;
@@ -227,6 +264,7 @@ export default function TeacherPanel() {
           </div>
           <div className="tp-stats-row">
             <span className="tp-stat-chip">👥 {students.length} alumno{students.length !== 1 ? "s" : ""}</span>
+            <button className="tp-logout-btn" onClick={logout}>Cerrar sesión</button>
           </div>
         </div>
 
@@ -240,6 +278,7 @@ export default function TeacherPanel() {
                     <th scope="col">Alumno</th>
                     <th scope="col">Nivel</th>
                     <th scope="col">XP</th>
+                    <th scope="col">Asistencia</th>
                     {EVAL_KEYS.map((key) => (
                       <th key={key} scope="col" className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}>
                         {EVAL_LABELS[key]}
@@ -264,7 +303,9 @@ export default function TeacherPanel() {
                         key={student.uid}
                         student={student}
                         cellStates={cellStates}
+                        attendanceSaving={attendanceStates[student.uid] ?? false}
                         onCellChange={handleCellChange}
+                        onAttendance={handleAttendance}
                       />
                     ))
                   )}
@@ -281,10 +322,12 @@ export default function TeacherPanel() {
 interface StudentRowProps {
   student: StudentDocument
   cellStates: Record<CellKey, CellState>
+  attendanceSaving: boolean
   onCellChange: (uid: string, evalKey: EvalKey, status: EvaluationStatus, score: number) => void
+  onAttendance: (uid: string) => void
 }
 
-function StudentRow({ student, cellStates, onCellChange }: StudentRowProps) {
+function StudentRow({ student, cellStates, attendanceSaving, onCellChange, onAttendance }: StudentRowProps) {
   const grades = student.gradesSummary ?? {}
   const initials = (student.displayName || student.email).slice(0, 2).toUpperCase()
   return (
@@ -298,11 +341,16 @@ function StudentRow({ student, cellStates, onCellChange }: StudentRowProps) {
           </div>
         </div>
       </td>
+      <td><span className="tp-level-badge">⭐ {student.level ?? 1}</span></td>
+      <td><span className="tp-xp-value">{student.xp ?? 0} XP</span></td>
       <td>
-        <span className="tp-level-badge">⭐ {student.level ?? 1}</span>
-      </td>
-      <td>
-        <span className="tp-xp-value">{student.xp ?? 0} XP</span>
+        {attendanceSaving ? (
+          <span className="tp-attendance-done">✓ +20 XP</span>
+        ) : (
+          <button className="tp-attendance-btn" onClick={() => onAttendance(student.uid)}>
+            📋 +20 XP
+          </button>
+        )}
       </td>
       {EVAL_KEYS.map((key) => (
         <td key={key} className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}>
