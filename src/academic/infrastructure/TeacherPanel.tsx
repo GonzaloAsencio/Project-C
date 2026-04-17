@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { collection, onSnapshot, query, where } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { outboxService } from "../../shared/services"
@@ -31,10 +31,6 @@ const HIDDEN_SM: Record<EvalKey, boolean> = {
 }
 
 const STATUS_OPTIONS: EvaluationStatus[] = ["Pending", "Victory", "Defeat"]
-
-const STATUS_COLORS: Record<EvaluationStatus, string> = {
-  Victory: "#4ade80", Defeat: "#f87171", Pending: "#facc15",
-}
 
 const STATUS_LABELS: Record<EvaluationStatus, string> = {
   Victory: "Victoria", Defeat: "Derrota", Pending: "Pendiente",
@@ -382,29 +378,45 @@ interface GradeCellProps {
 function GradeCell({ studentUid, evalKey, entry, cellState, onCellChange }: GradeCellProps) {
   const saving = cellState?.saving ?? false
   const error = cellState?.error ?? false
-  const status: EvaluationStatus = (saving && cellState?.pendingStatus) ? cellState.pendingStatus : (entry?.status ?? "Pending")
-  const score = (saving && cellState?.pendingScore !== undefined) ? cellState.pendingScore : (entry?.score ?? 0)
+  const committedStatus: EvaluationStatus = entry?.status ?? "Pending"
+  const committedScore = entry?.score ?? 0
+
+  // Local state for score input — only commits on blur
+  const [localScore, setLocalScore] = useState(committedScore)
+  const prevCommittedScore = useRef(committedScore)
+
+  // Sync local score when Firestore data changes (e.g. real-time update from another client)
+  useEffect(() => {
+    if (committedScore !== prevCommittedScore.current) {
+      setLocalScore(committedScore)
+      prevCommittedScore.current = committedScore
+    }
+  }, [committedScore])
+
+  const displayStatus: EvaluationStatus = (saving && cellState?.pendingStatus) ? cellState.pendingStatus : committedStatus
 
   return (
     <div className="tp-cell">
       {saving ? (
-        <span className="tp-cell-saving" aria-live="polite">Guardando cambios...</span>
+        <span className="tp-cell-saving" aria-live="polite">Guardando...</span>
       ) : error ? (
         <span className="tp-cell-error" role="alert">Error al guardar</span>
       ) : null}
-      
+
+      {/* Status select — saves immediately on change */}
       <select
         className="tp-select"
-        value={status}
+        value={displayStatus}
         aria-label={`Estado de ${evalKey}`}
         disabled={saving}
-        onChange={(e) => onCellChange(studentUid, evalKey, e.target.value as EvaluationStatus, score)}
+        onChange={(e) => onCellChange(studentUid, evalKey, e.target.value as EvaluationStatus, localScore)}
       >
         {STATUS_OPTIONS.map((s) => (
           <option key={s} value={s}>{STATUS_LABELS[s]}</option>
         ))}
       </select>
-      
+
+      {/* Score input — only saves on blur to avoid write-per-keystroke */}
       <div className="tp-cell-row">
         <span className="tp-score-label">Nota:</span>
         <input
@@ -413,10 +425,15 @@ function GradeCell({ studentUid, evalKey, entry, cellState, onCellChange }: Grad
           min={0}
           max={10}
           step={0.5}
-          value={score}
+          value={localScore}
           disabled={saving}
           aria-label={`Puntaje de ${evalKey}`}
-          onChange={(e) => onCellChange(studentUid, evalKey, status, Number(e.target.value))}
+          onChange={(e) => setLocalScore(Number(e.target.value))}
+          onBlur={() => {
+            if (localScore !== committedScore) {
+              onCellChange(studentUid, evalKey, committedStatus, localScore)
+            }
+          }}
         />
       </div>
     </div>
