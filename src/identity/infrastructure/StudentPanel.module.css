@@ -1,0 +1,292 @@
+/* ── Layout ── */
+.root {
+  width: 100%;
+  flex: 1;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  transition: background 0.6s ease, color 0.3s ease;
+  font-family: inherit;
+  background: linear-gradient(160deg, #f0f4ff 0%, #faf0ff 50%, #fff0f9 100%);
+}
+
+.rootDungeon {
+  background: linear-gradient(160deg, #0d0d1a 0%, #1a0a2e 50%, #0d1a0d 100%);
+  color: #e2e8f0;
+}
+
+.leftCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.rightCol {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Navbar ── */
+.navbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.navbarDungeon {
+  background: rgba(13, 13, 26, 0.9);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.navbarBrand {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.navbarDungeon .navbarBrand { color: #f1f5f9; }
+
+.logoutBtn {
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  border: 1.5px solid rgba(168, 85, 247, 0.3);
+  background: transparent;
+  color: #a855f7;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logoutBtn:hover { background: rgba(168, 85, 247, 0.1); border-color: #a855f7; }
+.navbarDungeon .logoutBtn { color: #c084fc; border-color: rgba(192, 132, 252, 0.3); }
+
+/* ── Victory banner ── */
+.victoryBanner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  padding: 1rem 2rem;
+  background: linear-gradient(90deg, #4ade80, #22d3ee, #a855f7);
+  color: #000;
+  font-weight: 800;
+  font-size: 1.25rem;
+  text-align: center;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ── XP Bar wrapper ── */
+.xpbarWrap {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.rootDungeon .xpbarWrap {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Combat zone ── */
+.combatZone {
+  width: 100%;
+  max-width: 480px;
+  border-radius: 16px;
+  padding: 1.25rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 2px solid rgba(239, 68, 68, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  animation: combatBorderPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes combatBorderPulse {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50%       { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 24px rgba(239, 68, 68, 0.2); }
+}
+
+.combatTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ef4444;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  animation: textPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes textPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ── Evaluations grid ── */
+.evals {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Loading ── */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+/* ── Victory / Defeat overlay ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlayIn 0.3s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.overlayVictory { background: rgba(0, 0, 0, 0.7); }
+.overlayDefeat  { background: rgba(0, 0, 0, 0.88); }
+
+.overlayCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.5rem 3rem;
+  border-radius: 24px;
+  text-align: center;
+  animation: cardPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cardPop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.overlayVictory .overlayCard {
+  background: linear-gradient(135deg, #0f2027, #1a3a1a);
+  border: 2px solid #4ade80;
+  box-shadow: 0 0 60px rgba(74, 222, 128, 0.3);
+}
+
+.overlayDefeat .overlayCard {
+  background: linear-gradient(135deg, #1a0000, #2d0000);
+  border: 2px solid #ef4444;
+  box-shadow: 0 0 60px rgba(239, 68, 68, 0.3);
+}
+
+.overlayIcon {
+  font-size: 4rem;
+  animation: iconBounce 0.6s ease 0.2s both;
+}
+
+@keyframes iconBounce {
+  from { transform: scale(0) rotate(-20deg); }
+  to   { transform: scale(1) rotate(0deg); }
+}
+
+.overlayTitle {
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.overlayVictory .overlayTitle { color: #4ade80; text-shadow: 0 0 20px rgba(74, 222, 128, 0.6); }
+.overlayDefeat  .overlayTitle { color: #ef4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+
+.overlaySub { font-size: 1rem; color: #94a3b8; margin: 0; }
+
+.overlayBtn {
+  margin-top: 0.5rem;
+  padding: 0.75rem 2.5rem;
+  border-radius: 12px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.overlayBtn:hover { transform: scale(1.05); }
+.overlayVictory .overlayBtn { background: #4ade80; color: #000; box-shadow: 0 4px 20px rgba(74, 222, 128, 0.4); }
+.overlayDefeat  .overlayBtn { background: #ef4444; color: #fff; box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
+
+/* ── Tablet+ ── */
+@media (min-width: 768px) {
+  .root        { padding: 2.5rem 2rem; }
+  .evals       { display: grid; grid-template-columns: 1fr 1fr; max-width: 640px; }
+  .xpbarWrap,
+  .combatZone  { max-width: 640px; }
+}
+
+/* ── Desktop ── */
+@media (min-width: 1024px) {
+  .root {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3rem 4rem;
+    gap: 3rem;
+  }
+
+  .leftCol {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 320px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 2rem;
+  }
+
+  .rightCol {
+    flex: 1;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .xpbarWrap, .combatZone { max-width: 100%; }
+  .evals { display: grid; grid-template-columns: 1fr 1fr; max-width: 100%; }
+}
