@@ -5,18 +5,10 @@ import { outboxService } from "../../shared/services"
 import { UpdateGrade } from "../application/UpdateGrade"
 import type { EvaluationStatus } from "../domain/Evaluation"
 
-interface GradeEntry {
-  status: EvaluationStatus
-  score: number
-}
-
+interface GradeEntry { status: EvaluationStatus; score: number }
 interface StudentDocument {
-  uid: string
-  displayName: string
-  email: string
-  level: number
-  xp: number
-  gradesSummary: Record<string, GradeEntry>
+  uid: string; displayName: string; email: string
+  level: number; xp: number; gradesSummary: Record<string, GradeEntry>
 }
 
 const EVAL_KEYS = ["tp1", "tp2", "parcial1", "parcial2"] as const
@@ -25,26 +17,25 @@ type EvalKey = typeof EVAL_KEYS[number]
 const EVAL_LABELS: Record<EvalKey, string> = {
   tp1: "TP 1", tp2: "TP 2", parcial1: "Parcial 1", parcial2: "Parcial 2",
 }
-
 const HIDDEN_SM: Record<EvalKey, boolean> = {
   tp1: false, tp2: true, parcial1: true, parcial2: true,
 }
-
 const STATUS_OPTIONS: EvaluationStatus[] = ["Pending", "Victory", "Defeat"]
-
 const STATUS_LABELS: Record<EvaluationStatus, string> = {
   Victory: "Victoria", Defeat: "Derrota", Pending: "Pendiente",
+}
+const STATUS_COLORS: Record<EvaluationStatus, { bg: string; text: string }> = {
+  Victory: { bg: "#dcfce7", text: "#15803d" },
+  Defeat:  { bg: "#fee2e2", text: "#b91c1c" },
+  Pending: { bg: "#fef9c3", text: "#854d0e" },
 }
 
 const updateGradeUC = new UpdateGrade(outboxService)
 
 type CellKey = string
-
 interface CellState {
-  saving: boolean
-  error: boolean
-  pendingStatus?: EvaluationStatus
-  pendingScore?: number
+  saving: boolean; error: boolean
+  pendingStatus?: EvaluationStatus; pendingScore?: number
 }
 
 export default function TeacherPanel() {
@@ -55,277 +46,232 @@ export default function TeacherPanel() {
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "student"))
     const unsub = onSnapshot(q, (snap) => {
-      const docs = snap.docs.map((d) => ({
-        uid: d.id,
-        ...(d.data() as Omit<StudentDocument, "uid">),
-      }))
-      setStudents(docs)
+      setStudents(snap.docs.map((d) => ({ uid: d.id, ...(d.data() as Omit<StudentDocument, "uid">) })))
       setLoading(false)
     })
     return unsub
   }, [])
 
-  async function handleCellChange(
-    studentUid: string,
-    evalKey: EvalKey,
-    newStatus: EvaluationStatus,
-    newScore: number
-  ) {
+  async function handleCellChange(studentUid: string, evalKey: EvalKey, newStatus: EvaluationStatus, newScore: number) {
     const cellKey: CellKey = `${studentUid}-${evalKey}`
-    const evalId = `${studentUid}_${evalKey}`
-
-    setCellStates((prev) => ({
-      ...prev,
-      [cellKey]: { saving: true, error: false, pendingStatus: newStatus, pendingScore: newScore },
-    }))
-
+    setCellStates((p) => ({ ...p, [cellKey]: { saving: true, error: false, pendingStatus: newStatus, pendingScore: newScore } }))
     try {
-      await updateGradeUC.execute(evalId, newStatus, newScore)
-      setCellStates((prev) => ({ ...prev, [cellKey]: { saving: false, error: false } }))
+      await updateGradeUC.execute(`${studentUid}_${evalKey}`, newStatus, newScore)
+      setCellStates((p) => ({ ...p, [cellKey]: { saving: false, error: false } }))
     } catch {
-      setCellStates((prev) => ({ ...prev, [cellKey]: { saving: false, error: true } }))
-      setTimeout(() => {
-        setCellStates((prev) => ({ ...prev, [cellKey]: { saving: false, error: false } }))
-      }, 3000)
+      setCellStates((p) => ({ ...p, [cellKey]: { saving: false, error: true } }))
+      setTimeout(() => setCellStates((p) => ({ ...p, [cellKey]: { saving: false, error: false } })), 3000)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="tp-loading" role="status" aria-live="polite">
-        Cargando panel del profesor…
-      </div>
-    )
-  }
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100svh", background:"#f8fafc", flexDirection:"column", gap:"1rem" }}>
+      <div style={{ fontSize:"2.5rem" }}>⏳</div>
+      <span style={{ color:"#64748b", fontWeight:600 }}>Cargando panel del profesor…</span>
+    </div>
+  )
 
   return (
     <>
       <style>{`
-        .tp-root { 
-          width:100%; min-height:100svh; box-sizing:border-box; padding:1.5rem; 
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          font-family:inherit; 
+        * { box-sizing: border-box; }
+        .tp-root {
+          min-height: 100svh;
+          background: #f1f5f9;
+          font-family: inherit;
         }
-        .tp-header {
-          max-width: 1400px;
-          margin: 0 auto 2rem;
-          text-align: center;
+        /* ── Top bar ── */
+        .tp-topbar {
+          background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+          padding: 1.25rem 2rem;
+          display: flex; align-items: center; justify-content: space-between;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.2);
         }
-        .tp-title { 
-          font-size:2rem; font-weight:800; margin-bottom:0.5rem; 
+        .tp-topbar-left { display: flex; flex-direction: column; gap: 0.2rem; }
+        .tp-title {
+          font-size: 1.5rem; font-weight: 800; color: #fff; margin: 0;
+          letter-spacing: -0.02em;
+        }
+        .tp-subtitle { font-size: 0.85rem; color: rgba(255,255,255,0.7); font-weight: 500; }
+        .tp-stats-row {
+          display: flex; gap: 1rem; align-items: center;
+        }
+        .tp-stat-chip {
+          background: rgba(255,255,255,0.15);
           color: #fff;
-          text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+          padding: 0.3rem 0.8rem;
+          border-radius: 999px;
+          font-size: 0.8rem; font-weight: 700;
+          backdrop-filter: blur(4px);
         }
-        .tp-subtitle {
-          font-size: 1rem;
-          color: rgba(255,255,255,0.9);
-          font-weight: 500;
-        }
-        .tp-table-wrap { 
-          max-width: 1400px;
-          margin: 0 auto;
-          overflow-x:auto; 
-          -webkit-overflow-scrolling:touch; 
-          border-radius:16px; 
-          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        /* ── Content ── */
+        .tp-content { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+        @media (min-width: 768px) { .tp-content { padding: 2rem; } }
+        /* ── Table card ── */
+        .tp-card {
           background: #fff;
+          border-radius: 16px;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+          overflow: hidden;
         }
-        .tp-table { 
-          width:100%; 
-          border-collapse:collapse; 
-          min-width:700px; 
-          font-size:0.9rem; 
+        .tp-table-wrap {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
         }
-        .tp-table th, .tp-table td { 
-          padding:1rem 1.25rem; 
-          text-align:left; 
-          border-bottom:1px solid #e5e7eb; 
+        .tp-table {
+          width: 100%; border-collapse: collapse;
+          min-width: 700px; font-size: 0.9rem;
         }
-        .tp-table th { 
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          font-weight:700; 
-          font-size:0.85rem; 
-          text-transform:uppercase; 
-          letter-spacing:0.08em; 
-          color: #fff;
-          position: sticky;
-          top: 0;
-          z-index: 10;
+        .tp-table thead tr {
+          background: #f8fafc;
+          border-bottom: 2px solid #e2e8f0;
         }
-        .tp-table tbody tr { 
-          transition: background 0.2s ease;
+        .tp-table th {
+          padding: 0.875rem 1.25rem;
+          text-align: left;
+          font-size: 0.75rem; font-weight: 700;
+          text-transform: uppercase; letter-spacing: 0.08em;
+          color: #64748b;
+          white-space: nowrap;
         }
-        .tp-table tbody tr:hover { 
-          background: #f9fafb;
+        .tp-table td {
+          padding: 0.875rem 1.25rem;
+          border-bottom: 1px solid #f1f5f9;
+          vertical-align: middle;
         }
-        .tp-table tr:last-child td { border-bottom:none; }
-        .tp-col-sm-hidden { display:none; }
-        @media (min-width:768px) { 
-          .tp-col-sm-hidden { display:table-cell; } 
-          .tp-root { padding:2.5rem; } 
-          .tp-title { font-size:2.5rem; } 
+        .tp-table tbody tr:last-child td { border-bottom: none; }
+        .tp-table tbody tr:hover td { background: #f8fafc; }
+        .tp-col-sm-hidden { display: none; }
+        @media (min-width: 768px) { .tp-col-sm-hidden { display: table-cell; } }
+        @media (min-width: 1024px) {
+          .tp-topbar { padding: 1.5rem 3rem; }
+          .tp-title { font-size: 1.75rem; }
+          .tp-table th, .tp-table td { padding: 1rem 1.5rem; }
+          .tp-grade-cell { min-width: 180px; }
         }
-        .tp-cell { 
-          display:flex; 
-          flex-direction:column; 
-          gap:0.5rem; 
-          min-width:160px; 
+        /* ── Student info ── */
+        .tp-student-avatar {
+          width: 36px; height: 36px; border-radius: 50%;
+          background: linear-gradient(135deg, #a855f7, #7c3aed);
+          display: inline-flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 0.9rem;
+          flex-shrink: 0;
         }
-        .tp-cell-row {
-          display: flex;
-          gap: 0.5rem;
-          align-items: center;
+        .tp-student-info { display: flex; align-items: center; gap: 0.75rem; }
+        .tp-student-name { font-weight: 700; font-size: 0.95rem; color: #1e293b; }
+        .tp-student-email { font-size: 0.78rem; color: #94a3b8; margin-top: 0.1rem; }
+        /* ── Level/XP ── */
+        .tp-level-badge {
+          display: inline-flex; align-items: center; gap: 0.3rem;
+          background: linear-gradient(135deg, #a855f7, #7c3aed);
+          color: #fff; padding: 0.25rem 0.6rem;
+          border-radius: 999px; font-size: 0.8rem; font-weight: 700;
         }
-        .tp-select { 
-          flex: 1;
-          min-height:44px; 
-          padding:0.5rem 0.75rem; 
-          border-radius:8px; 
-          border:2px solid #e5e7eb; 
-          background:#fff; 
-          font-size:0.875rem; 
-          font-weight: 600;
-          cursor:pointer; 
-          box-sizing:border-box; 
-          transition: all 0.2s ease;
+        .tp-xp-value { font-weight: 700; color: #1e293b; font-size: 0.95rem; }
+        /* ── Grade cell ── */
+        .tp-grade-cell { display: flex; flex-direction: column; gap: 0.4rem; min-width: 150px; }
+        .tp-status-select {
+          width: 100%; min-height: 40px;
+          padding: 0.4rem 0.6rem;
+          border-radius: 8px; border: 1.5px solid #e2e8f0;
+          font-size: 0.85rem; font-weight: 600;
+          cursor: pointer; background: #fff;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.6rem center;
+          padding-right: 2rem;
         }
-        .tp-select:hover {
-          border-color: #9ca3af;
+        .tp-status-select:focus {
+          outline: none; border-color: #a855f7;
+          box-shadow: 0 0 0 3px rgba(168,85,247,0.12);
         }
-        .tp-select:focus { 
-          outline:none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        .tp-status-select:disabled { opacity: 0.6; cursor: not-allowed; }
+        .tp-score-row { display: flex; align-items: center; gap: 0.5rem; }
+        .tp-score-label { font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+        .tp-score-input {
+          width: 64px; min-height: 36px;
+          padding: 0.35rem 0.5rem;
+          border-radius: 8px; border: 1.5px solid #e2e8f0;
+          font-size: 0.875rem; font-weight: 700; text-align: center;
+          background: #fff; transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        .tp-score-input { 
-          width: 70px;
-          min-height:44px; 
-          padding:0.5rem; 
-          border-radius:8px; 
-          border:2px solid #e5e7eb; 
-          background:#fff; 
-          font-size:0.875rem; 
-          font-weight: 600;
-          text-align: center;
-          box-sizing:border-box; 
-          transition: all 0.2s ease;
+        .tp-score-input:focus {
+          outline: none; border-color: #a855f7;
+          box-shadow: 0 0 0 3px rgba(168,85,247,0.12);
         }
-        .tp-score-input:hover {
-          border-color: #9ca3af;
+        .tp-score-input:disabled { opacity: 0.6; cursor: not-allowed; }
+        /* ── Status badge (shown while saving) ── */
+        .tp-status-badge {
+          display: inline-flex; align-items: center; gap: 0.3rem;
+          padding: 0.3rem 0.7rem; border-radius: 8px;
+          font-size: 0.8rem; font-weight: 700;
         }
-        .tp-score-input:focus { 
-          outline:none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        .tp-score-label {
-          font-size: 0.7rem;
-          color: #6b7280;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        .tp-cell-saving { 
-          font-size:0.75rem; 
-          color:#667eea; 
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .tp-cell-saving::before {
-          content: "⏳";
-        }
-        .tp-cell-error { 
-          font-size:0.75rem; 
-          color:#ef4444; 
-          font-weight:600; 
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .tp-cell-error::before {
-          content: "⚠️";
-        }
-        .tp-student-name {
-          font-weight: 700;
-          font-size: 0.95rem;
-          color: #111827;
-          margin-bottom: 0.25rem;
-        }
-        .tp-student-email {
-          font-size: 0.8rem;
-          color: #6b7280;
-        }
-        .tp-stat {
-          font-weight: 700;
-          font-size: 1.1rem;
-          color: #111827;
-        }
-        .tp-loading { 
-          display:flex; 
-          flex-direction: column;
-          align-items:center; 
-          justify-content:center; 
-          min-height:100svh; 
-          font-size:1.2rem; 
-          color:#fff;
-          gap: 1rem;
-        }
-        .tp-loading::before {
-          content: "⏳";
-          font-size: 3rem;
-        }
-        .tp-empty { 
-          padding:3rem 2rem; 
-          text-align:center; 
-          color:#6b7280; 
-          font-size:1rem; 
-        }
+        /* ── Feedback ── */
+        .tp-saving { font-size: 0.75rem; color: #a855f7; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; }
+        .tp-error  { font-size: 0.75rem; color: #ef4444; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; }
+        /* ── Empty ── */
+        .tp-empty { padding: 4rem 2rem; text-align: center; color: #94a3b8; }
+        .tp-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .tp-empty-title { font-size: 1.1rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; }
+        .tp-empty-sub { font-size: 0.875rem; }
       `}</style>
 
       <div className="tp-root">
-        <div className="tp-header">
-          <h1 className="tp-title">Panel del Profesor</h1>
-          <p className="tp-subtitle">Gestión de evaluaciones y progreso de alumnos</p>
+        {/* ── Top bar ── */}
+        <div className="tp-topbar">
+          <div className="tp-topbar-left">
+            <h1 className="tp-title">🎓 Panel del Profesor</h1>
+            <span className="tp-subtitle">Gestión de evaluaciones en tiempo real</span>
+          </div>
+          <div className="tp-stats-row">
+            <span className="tp-stat-chip">👥 {students.length} alumno{students.length !== 1 ? "s" : ""}</span>
+          </div>
         </div>
-        <div className="tp-table-wrap" role="region" aria-label="Tabla de alumnos" tabIndex={0}>
-          <table className="tp-table">
-            <thead>
-              <tr>
-                <th scope="col">Alumno</th>
-                <th scope="col">Nivel</th>
-                <th scope="col">XP</th>
-                {EVAL_KEYS.map((key) => (
-                  <th key={key} scope="col" className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}>
-                    {EVAL_LABELS[key]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {students.length === 0 ? (
-                <tr>
-                  <td colSpan={3 + EVAL_KEYS.length}>
-                    <div className="tp-empty">
-                      No hay alumnos registrados.
-                      <br />
-                      <small>Los alumnos aparecerán aquí cuando se registren en la plataforma.</small>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                students.map((student) => (
-                  <StudentRow
-                    key={student.uid}
-                    student={student}
-                    cellStates={cellStates}
-                    onCellChange={handleCellChange}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
+
+        {/* ── Table ── */}
+        <div className="tp-content">
+          <div className="tp-card">
+            <div className="tp-table-wrap" role="region" aria-label="Tabla de alumnos" tabIndex={0}>
+              <table className="tp-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Alumno</th>
+                    <th scope="col">Nivel</th>
+                    <th scope="col">XP</th>
+                    {EVAL_KEYS.map((key) => (
+                      <th key={key} scope="col" className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}>
+                        {EVAL_LABELS[key]}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.length === 0 ? (
+                    <tr>
+                      <td colSpan={3 + EVAL_KEYS.length}>
+                        <div className="tp-empty">
+                          <div className="tp-empty-icon">🎒</div>
+                          <div className="tp-empty-title">No hay alumnos registrados</div>
+                          <div className="tp-empty-sub">Los alumnos aparecerán aquí cuando se registren.</div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    students.map((student) => (
+                      <StudentRow
+                        key={student.uid}
+                        student={student}
+                        cellStates={cellStates}
+                        onCellChange={handleCellChange}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </>
@@ -340,38 +286,42 @@ interface StudentRowProps {
 
 function StudentRow({ student, cellStates, onCellChange }: StudentRowProps) {
   const grades = student.gradesSummary ?? {}
+  const initials = (student.displayName || student.email).slice(0, 2).toUpperCase()
   return (
     <tr>
       <td>
-        <div className="tp-student-name">{student.displayName || student.email}</div>
-        <div className="tp-student-email">{student.email}</div>
+        <div className="tp-student-info">
+          <div className="tp-student-avatar">{initials}</div>
+          <div>
+            <div className="tp-student-name">{student.displayName || student.email}</div>
+            <div className="tp-student-email">{student.email}</div>
+          </div>
+        </div>
       </td>
-      <td><span className="tp-stat">{student.level ?? 1}</span></td>
-      <td><span className="tp-stat">{student.xp ?? 0}</span></td>
-      {EVAL_KEYS.map((key) => {
-        const entry = grades[key] as GradeEntry | undefined
-        const cellKey: CellKey = `${student.uid}-${key}`
-        return (
-          <td key={key} className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}>
-            <GradeCell
-              studentUid={student.uid}
-              evalKey={key}
-              entry={entry}
-              cellState={cellStates[cellKey]}
-              onCellChange={onCellChange}
-            />
-          </td>
-        )
-      })}
+      <td>
+        <span className="tp-level-badge">⭐ {student.level ?? 1}</span>
+      </td>
+      <td>
+        <span className="tp-xp-value">{student.xp ?? 0} XP</span>
+      </td>
+      {EVAL_KEYS.map((key) => (
+        <td key={key} className={HIDDEN_SM[key] ? "tp-col-sm-hidden" : undefined}>
+          <GradeCell
+            studentUid={student.uid}
+            evalKey={key}
+            entry={grades[key] as GradeEntry | undefined}
+            cellState={cellStates[`${student.uid}-${key}`]}
+            onCellChange={onCellChange}
+          />
+        </td>
+      ))}
     </tr>
   )
 }
 
 interface GradeCellProps {
-  studentUid: string
-  evalKey: EvalKey
-  entry: GradeEntry | undefined
-  cellState: CellState | undefined
+  studentUid: string; evalKey: EvalKey
+  entry: GradeEntry | undefined; cellState: CellState | undefined
   onCellChange: (uid: string, evalKey: EvalKey, status: EvaluationStatus, score: number) => void
 }
 
@@ -380,35 +330,33 @@ function GradeCell({ studentUid, evalKey, entry, cellState, onCellChange }: Grad
   const error = cellState?.error ?? false
   const committedStatus: EvaluationStatus = entry?.status ?? "Pending"
   const committedScore = entry?.score ?? 0
-
-  // Local state for score input — only commits on blur
   const [localScore, setLocalScore] = useState(committedScore)
-  const prevCommittedScore = useRef(committedScore)
+  const prevScore = useRef(committedScore)
 
-  // Sync local score when Firestore data changes (e.g. real-time update from another client)
   useEffect(() => {
-    if (committedScore !== prevCommittedScore.current) {
+    if (committedScore !== prevScore.current) {
       setLocalScore(committedScore)
-      prevCommittedScore.current = committedScore
+      prevScore.current = committedScore
     }
   }, [committedScore])
 
   const displayStatus: EvaluationStatus = (saving && cellState?.pendingStatus) ? cellState.pendingStatus : committedStatus
+  const colors = STATUS_COLORS[displayStatus]
 
   return (
-    <div className="tp-cell">
+    <div className="tp-grade-cell">
       {saving ? (
-        <span className="tp-cell-saving" aria-live="polite">Guardando...</span>
+        <span className="tp-saving">⏳ Guardando…</span>
       ) : error ? (
-        <span className="tp-cell-error" role="alert">Error al guardar</span>
+        <span className="tp-error">⚠️ Error al guardar</span>
       ) : null}
 
-      {/* Status select — saves immediately on change */}
       <select
-        className="tp-select"
+        className="tp-status-select"
         value={displayStatus}
-        aria-label={`Estado de ${evalKey}`}
         disabled={saving}
+        aria-label={`Estado de ${evalKey}`}
+        style={{ color: colors.text, background: colors.bg, borderColor: colors.bg === "#f8fafc" ? "#e2e8f0" : colors.bg }}
         onChange={(e) => onCellChange(studentUid, evalKey, e.target.value as EvaluationStatus, localScore)}
       >
         {STATUS_OPTIONS.map((s) => (
@@ -416,24 +364,17 @@ function GradeCell({ studentUid, evalKey, entry, cellState, onCellChange }: Grad
         ))}
       </select>
 
-      {/* Score input — only saves on blur to avoid write-per-keystroke */}
-      <div className="tp-cell-row">
+      <div className="tp-score-row">
         <span className="tp-score-label">Nota:</span>
         <input
           type="number"
           className="tp-score-input"
-          min={0}
-          max={10}
-          step={0.5}
+          min={0} max={10} step={0.5}
           value={localScore}
           disabled={saving}
           aria-label={`Puntaje de ${evalKey}`}
           onChange={(e) => setLocalScore(Number(e.target.value))}
-          onBlur={() => {
-            if (localScore !== committedScore) {
-              onCellChange(studentUid, evalKey, committedStatus, localScore)
-            }
-          }}
+          onBlur={() => { if (localScore !== committedScore) onCellChange(studentUid, evalKey, committedStatus, localScore) }}
         />
       </div>
     </div>

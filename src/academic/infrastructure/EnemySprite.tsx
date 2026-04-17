@@ -3,129 +3,124 @@ export interface EnemySpriteProps {
   enemyType: "tp1" | "tp2" | "parcial1" | "parcial2"
 }
 
-// Each enemy type maps to a distinct color/shape via CSS.
-// In a real project these would be sprite sheets; here we use CSS-only
-// placeholder sprites that animate with steps() + transform.
 const ENEMY_CONFIG: Record<
   EnemySpriteProps["enemyType"],
-  { label: string; color: string; frames: number }
+  { label: string; emoji: string; color: string; glow: string; frames: number }
 > = {
-  tp1:      { label: "TP 1",      color: "#4ade80", frames: 4 },
-  tp2:      { label: "TP 2",      color: "#facc15", frames: 4 },
-  parcial1: { label: "Parcial 1", color: "#f87171", frames: 6 },
-  parcial2: { label: "Parcial 2", color: "#c084fc", frames: 6 },
+  tp1:      { label: "TP 1",      emoji: "👾", color: "#4ade80", glow: "rgba(74,222,128,0.5)",  frames: 4 },
+  tp2:      { label: "TP 2",      emoji: "🤖", color: "#facc15", glow: "rgba(250,204,21,0.5)",  frames: 4 },
+  parcial1: { label: "Parcial 1", emoji: "💀", color: "#f87171", glow: "rgba(248,113,113,0.6)", frames: 6 },
+  parcial2: { label: "Parcial 2", emoji: "🐉", color: "#c084fc", glow: "rgba(192,132,252,0.6)", frames: 6 },
 }
 
 export default function EnemySprite({ isDefeated, enemyType }: EnemySpriteProps) {
   const cfg = ENEMY_CONFIG[enemyType]
-  // Each frame is 64px wide; total sprite sheet width = frames * 64
-  const sheetWidth = cfg.frames * 64
 
   return (
     <>
       <style>{`
         .enemy-root {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
+          display: flex; flex-direction: column; align-items: center; gap: 1rem;
           width: 100%;
         }
 
-        /* Sprite container — clips to one 64×64 frame */
-        .enemy-sprite {
-          width: 64px;
-          height: 64px;
+        .enemy-container {
           position: relative;
-          overflow: hidden;
-          image-rendering: pixelated;
-          /* Scale up for visibility */
-          transform: scale(2);
-          transform-origin: top center;
-          margin-bottom: 64px; /* compensate scale */
+          display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
         }
 
-        /* The "sprite sheet" is a single div whose background-color
-           simulates the enemy. We animate translateX to cycle frames. */
-        .enemy-frames {
-          width: ${sheetWidth}px;
-          height: 64px;
-          display: flex;
-          will-change: transform;
+        .enemy-glow-ring {
+          width: 120px; height: 120px;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 4rem;
+          background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+          border: 2px solid var(--enemy-color);
+          box-shadow: 0 0 24px var(--enemy-glow), inset 0 0 24px rgba(0,0,0,0.3);
+          animation: enemy-float 2s ease-in-out infinite;
+          transition: opacity 0.5s ease, transform 0.5s ease;
         }
 
-        .enemy-frame {
-          width: 64px;
-          height: 64px;
-          flex-shrink: 0;
-          border-radius: 8px;
-          position: relative;
+        .enemy-glow-ring--defeated {
+          animation: enemy-defeat 0.8s ease-in forwards;
         }
 
-        /* Idle walk animation: steps through frames */
-        @keyframes enemy-walk {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-${sheetWidth - 64}px); }
+        @keyframes enemy-float {
+          0%,100% { transform: translateY(0) scale(1); }
+          50%      { transform: translateY(-8px) scale(1.05); }
         }
 
-        .enemy-frames--idle {
-          animation: enemy-walk ${cfg.frames * 0.15}s steps(${cfg.frames - 1}, end) infinite;
-        }
-
-        /* Defeat animation: fall + fade */
         @keyframes enemy-defeat {
-          0%   { transform: translateX(0) rotate(0deg);   opacity: 1; }
-          40%  { transform: translateX(16px) rotate(30deg); opacity: 0.8; }
-          100% { transform: translateX(0) rotate(90deg);  opacity: 0; }
+          0%   { transform: rotate(0deg) scale(1); opacity: 1; }
+          30%  { transform: rotate(-15deg) scale(1.1); opacity: 0.8; }
+          60%  { transform: rotate(20deg) scale(0.8); opacity: 0.4; }
+          100% { transform: rotate(90deg) scale(0.3) translateY(20px); opacity: 0; }
         }
 
-        .enemy-frames--defeated {
-          animation: enemy-defeat 0.7s ease-in forwards;
+        .enemy-hp-bar {
+          width: 120px; height: 8px;
+          background: rgba(255,255,255,0.1);
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        .enemy-hp-fill {
+          height: 100%;
+          border-radius: 4px;
+          background: var(--enemy-color);
+          box-shadow: 0 0 8px var(--enemy-glow);
+          transition: width 0.5s ease;
+          animation: hp-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes hp-pulse {
+          0%,100% { opacity: 1; } 50% { opacity: 0.7; }
         }
 
         .enemy-label {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: var(--text-h, #08060d);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
+          font-size: 0.85rem; font-weight: 800;
+          color: var(--enemy-color);
+          text-transform: uppercase; letter-spacing: 0.1em;
+          text-shadow: 0 0 12px var(--enemy-glow);
         }
 
-        /* Full-width on sm breakpoint (≥320px base) */
+        .enemy-defeated-text {
+          font-size: 0.85rem; font-weight: 800;
+          color: #4ade80;
+          text-transform: uppercase; letter-spacing: 0.1em;
+          animation: fade-in 0.5s ease 0.5s both;
+        }
+
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
         @media (max-width: 767px) {
-          .enemy-root {
-            width: 100%;
-          }
-          .enemy-sprite {
-            transform: scale(3);
-            margin-bottom: 128px;
-          }
+          .enemy-glow-ring { width: 140px; height: 140px; font-size: 5rem; }
+          .enemy-hp-bar { width: 140px; }
         }
       `}</style>
+
       <div
         className="enemy-root"
         role="img"
         aria-label={`Enemigo: ${cfg.label}${isDefeated ? " (derrotado)" : ""}`}
+        style={{
+          "--enemy-color": cfg.color,
+          "--enemy-glow": cfg.glow,
+        } as React.CSSProperties}
       >
-        <div className="enemy-sprite">
-          <div
-            className={`enemy-frames ${isDefeated ? "enemy-frames--defeated" : "enemy-frames--idle"}`}
-          >
-            {Array.from({ length: cfg.frames }).map((_, i) => (
-              <div
-                key={i}
-                className="enemy-frame"
-                style={{
-                  background: cfg.color,
-                  opacity: 0.85 + (i % 2) * 0.15,
-                  // Slight shape variation per frame to simulate animation
-                  borderRadius: i % 2 === 0 ? "8px 8px 4px 4px" : "4px 4px 8px 8px",
-                }}
-              />
-            ))}
+        <div className="enemy-container">
+          <div className={`enemy-glow-ring${isDefeated ? " enemy-glow-ring--defeated" : ""}`}>
+            {cfg.emoji}
           </div>
+
+          {isDefeated
+            ? <span className="enemy-defeated-text">¡Derrotado! ✓</span>
+            : <span className="enemy-label">{cfg.label}</span>
+          }
         </div>
-        <span className="enemy-label">{cfg.label}</span>
       </div>
     </>
   )
