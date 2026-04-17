@@ -19,7 +19,19 @@ const updateGradeUC = new UpdateGrade(outboxService)
 export default function TeacherPanel() {
   const { user } = useAuth()
   const logout = useLogout()
-  const { students, sessions, loading, studentsError, attendanceError } = useTeacherData()
+  const {
+    students,
+    filteredStudents,
+    sessions,
+    loading,
+    loadingMore,
+    hasMore,
+    studentsError,
+    attendanceError,
+    filterText,
+    setFilterText,
+    loadMore,
+  } = useTeacherData()
   const [cellStates, setCellStates] = useState<Record<CellKey, CellState>>({})
   const [creatingSession, setCreatingSession] = useState(false)
   const [checkStates, setCheckStates] = useState<Record<string, boolean>>({})
@@ -76,7 +88,7 @@ export default function TeacherPanel() {
           <span className={styles.subtitle}>Gestión de evaluaciones en tiempo real</span>
         </div>
         <div className={styles.statsRow}>
-          <span className={styles.statChip}>👥 {students.length} alumno{students.length !== 1 ? "s" : ""}</span>
+          <span className={styles.statChip}>👥 {students.length} alumno{students.length !== 1 ? "s" : ""}{hasMore ? "+" : ""}</span>
           <button className={styles.logoutBtn} onClick={logout}>Cerrar sesión</button>
         </div>
       </div>
@@ -110,6 +122,23 @@ export default function TeacherPanel() {
 
         {activeTab === "grades" && (
           <div className={styles.card}>
+            {/* Search */}
+            <div className={styles.searchWrap}>
+              <input
+                className={styles.searchInput}
+                type="search"
+                placeholder="🔍 Buscar alumno por nombre o email…"
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                aria-label="Buscar alumno"
+              />
+              {filterText && (
+                <span className={styles.searchCount}>
+                  {filteredStudents.length} resultado{filteredStudents.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+
             <div className={styles.tableWrap} role="region" aria-label="Tabla de alumnos" tabIndex={0}>
               <table className={styles.table}>
                 <thead>
@@ -125,18 +154,24 @@ export default function TeacherPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {students.length === 0 ? (
+                  {filteredStudents.length === 0 ? (
                     <tr>
                       <td colSpan={3 + EVAL_KEYS.length}>
                         <div className={styles.empty}>
-                          <div className={styles.emptyIcon}>🎒</div>
-                          <div className={styles.emptyTitle}>No hay alumnos registrados</div>
-                          <div className={styles.emptySub}>Los alumnos aparecerán aquí cuando se registren.</div>
+                          <div className={styles.emptyIcon}>{filterText ? "🔍" : "🎒"}</div>
+                          <div className={styles.emptyTitle}>
+                            {filterText ? "Sin resultados" : "No hay alumnos registrados"}
+                          </div>
+                          <div className={styles.emptySub}>
+                            {filterText
+                              ? `No se encontraron alumnos que coincidan con "${filterText}".`
+                              : "Los alumnos aparecerán aquí cuando se registren."}
+                          </div>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    students.map((student) => (
+                    filteredStudents.map((student) => (
                       <StudentRow
                         key={student.uid}
                         student={student}
@@ -148,6 +183,19 @@ export default function TeacherPanel() {
                 </tbody>
               </table>
             </div>
+
+            {/* Load more */}
+            {hasMore && !filterText && (
+              <div className={styles.loadMoreWrap}>
+                <button
+                  className={styles.loadMoreBtn}
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? "⏳ Cargando…" : "Cargar más alumnos"}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

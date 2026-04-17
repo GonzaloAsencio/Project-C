@@ -289,3 +289,66 @@
 .attXp   { font-size: 0.72rem; color: #10b981; font-weight: 700; margin-left: auto; }
 
 .noSessions { padding: 3rem 2rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+
+/* ── Search / filter ── */
+.searchWrap {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 0.55rem 1rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  background: #f8fafc;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #a855f7;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+}
+
+.searchCount {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Load more ── */
+.loadMoreWrap {
+  padding: 1.25rem;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #f1f5f9;
+}
+
+.loadMoreBtn {
+  padding: 0.6rem 2rem;
+  border-radius: 10px;
+  border: 2px solid #a855f7;
+  background: transparent;
+  color: #7c3aed;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.loadMoreBtn:hover:not(:disabled) {
+  background: #faf5ff;
+}
+
+.loadMoreBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
