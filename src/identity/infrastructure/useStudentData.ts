@@ -4,6 +4,8 @@ import type { FirestoreError } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { useAuth } from "../../shared/AuthContext"
 import { ReconcileGrades } from "../../academic/application/ReconcileGrades"
+import { useEvalColumns } from "../../shared/useEvalColumns"
+import type { EvalColumn } from "../../shared/useEvalColumns"
 import type { AvatarClass } from "../domain/User"
 import type { EvaluationStatus } from "../../academic/domain/Evaluation"
 
@@ -22,16 +24,10 @@ export interface UserDocument {
   gradesSummary: Record<string, GradeEntry>
 }
 
-export const EVAL_KEYS = ["tp1", "tp2", "parcial1", "parcial2"] as const
-export type EvalKey = typeof EVAL_KEYS[number]
-
-export const EVAL_LABELS: Record<EvalKey, string> = {
-  tp1: "TP 1", tp2: "TP 2", parcial1: "Parcial 1", parcial2: "Parcial 2",
-}
-
 export interface StudentDataResult {
   userData: UserDocument | null
   grades: Record<string, GradeEntry>
+  columns: EvalColumn[]
   overlay: { type: "victory" | "defeat"; label: string } | null
   setOverlay: (v: { type: "victory" | "defeat"; label: string } | null) => void
   victoryAnim: boolean
@@ -41,6 +37,7 @@ export interface StudentDataResult {
 
 export function useStudentData(): StudentDataResult {
   const { user } = useAuth()
+  const { columns } = useEvalColumns()
   const [userData, setUserData] = useState<UserDocument | null>(null)
   const [victoryAnim, setVictoryAnim] = useState(false)
   const [overlay, setOverlay] = useState<{ type: "victory" | "defeat"; label: string } | null>(null)
@@ -58,18 +55,18 @@ export function useStudentData(): StudentDataResult {
           const prev = prevGradesRef.current
           const next = newData.gradesSummary ?? {}
 
-          for (const key of EVAL_KEYS) {
-            const prevStatus = prev[key]?.status
-            const nextStatus = next[key]?.status
+          for (const col of columns) {
+            const prevStatus = prev[col.key]?.status
+            const nextStatus = next[col.key]?.status
             if (prevStatus === "Pending" && nextStatus === "Victory") {
-              setOverlay({ type: "victory", label: EVAL_LABELS[key] })
+              setOverlay({ type: "victory", label: col.label })
               import("canvas-confetti").then((m) =>
                 m.default({ particleCount: 180, spread: 100, origin: { y: 0.5 } })
               )
               break
             }
             if (prevStatus === "Pending" && nextStatus === "Defeat") {
-              setOverlay({ type: "defeat", label: EVAL_LABELS[key] })
+              setOverlay({ type: "defeat", label: col.label })
               break
             }
           }
@@ -78,8 +75,6 @@ export function useStudentData(): StudentDataResult {
           setUserData(newData)
           setSnapshotError(null)
 
-          // Trigger reconciliation once if summary is empty but student already has XP
-          // (indicates a desync between evaluations collection and gradesSummary)
           const summaryEmpty = Object.keys(next).length === 0
           const hasProgress = (newData.xp ?? 0) > 0
           if (summaryEmpty && hasProgress && !reconciling.current) {
@@ -100,13 +95,13 @@ export function useStudentData(): StudentDataResult {
       }
     )
     return unsub
-  }, [user])
+  }, [user, columns])
 
   const rawGrades = userData?.gradesSummary ?? {}
   const grades: Record<string, GradeEntry> =
     Object.keys(rawGrades).length === 0
-      ? Object.fromEntries(EVAL_KEYS.map((k) => [k, { status: "Pending" as EvaluationStatus, score: 0 }]))
+      ? Object.fromEntries(columns.map((c) => [c.key, { status: "Pending" as EvaluationStatus, score: 0 }]))
       : rawGrades
 
-  return { userData, grades, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError }
+  return { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError }
 }

@@ -1,10 +1,11 @@
 import { cn } from "../../shared/cn"
 import type { GradeEntry } from "./useStudentData"
-import { EVAL_KEYS, EVAL_LABELS } from "./useStudentData"
+import type { EvalColumn } from "../../shared/useEvalColumns"
 import type { EvaluationStatus } from "../../academic/domain/Evaluation"
 
 interface EvalMissionSelectorProps {
   grades: Record<string, GradeEntry | undefined>
+  columns: EvalColumn[]
   isDungeon: boolean
 }
 
@@ -70,7 +71,7 @@ function MetallicRing() {
   )
 }
 
-export default function EvalMissionSelector({ grades, isDungeon }: EvalMissionSelectorProps) {
+export default function EvalMissionSelector({ grades, columns, isDungeon }: EvalMissionSelectorProps) {
   return (
     <div className={cn(
       "relative flex flex-col items-center py-8 px-6 rounded-3xl",
@@ -80,12 +81,12 @@ export default function EvalMissionSelector({ grades, isDungeon }: EvalMissionSe
       <div className="absolute left-1/2 -translate-x-1/2 w-[2px] bg-gradient-to-b from-transparent via-border to-transparent top-4 bottom-4" />
 
       <div className="relative flex flex-col gap-6 z-10">
-        {EVAL_KEYS.map((key) => {
-          const entry = grades[key]
+        {columns.map((col) => {
+          const entry = grades[col.key]
           const status: EvaluationStatus = entry?.status ?? "Pending"
 
           return (
-            <div key={key} className="relative flex flex-col items-center">
+            <div key={col.key} className="relative flex flex-col items-center">
               {/* Avatar circle */}
               <div className={cn(
                 "group relative w-20 h-20 rounded-full border border-transparent flex items-center justify-center text-3xl",
@@ -101,7 +102,7 @@ export default function EvalMissionSelector({ grades, isDungeon }: EvalMissionSe
                 "text-xs font-semibold mt-2 text-center w-20",
                 isDungeon ? "text-white/70" : "text-muted-foreground"
               )}>
-                {EVAL_LABELS[key]}
+                {col.label}
               </span>
 
               {/* Timeline dot */}

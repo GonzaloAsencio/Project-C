@@ -9,7 +9,7 @@ import ProfileCard from "./ProfileCard"
 import EvalList from "./EvalList"
 import EvalMissionSelector from "./EvalMissionSelector"
 import { AtmosphericBackground } from "./AtmosphericBackground"
-import { useStudentData, EVAL_KEYS } from "./useStudentData"
+import { useStudentData } from "./useStudentData"
 import styles from "./StudentPanel.module.css"
 
 interface EvaluationApprovedPayload { evalId: string; studentUid: string; xpReward: number }
@@ -17,7 +17,7 @@ interface EvaluationApprovedPayload { evalId: string; studentUid: string; xpRewa
 export default function StudentPanel() {
   const { user } = useAuth()
   const logout = useLogout()
-  const { userData, grades, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError } = useStudentData()
+  const { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError } = useStudentData()
 
   useEffect(() => {
     if (!user) return
@@ -32,8 +32,8 @@ export default function StudentPanel() {
     return () => eventBus.off<EvaluationApprovedPayload>("EvaluationApproved", handleEvaluationApproved)
   }, [user])
 
-  const combatMode = EVAL_KEYS.some((k) => grades[k]?.status === "Pending")
-  const pendingEvalKey = EVAL_KEYS.find((k) => grades[k]?.status === "Pending")
+  const combatMode = columns.some((c) => grades[c.key]?.status === "Pending")
+  const pendingEvalKey = columns.find((c) => grades[c.key]?.status === "Pending")?.key
 
   if (!user) return <div className={styles.loading}>Cargando…</div>
 
@@ -89,7 +89,7 @@ export default function StudentPanel() {
 
         {/* Left — Eval Mission Selector */}
         <div className="absolute left-8 top-1/2 -translate-y-1/2 z-20">
-          <EvalMissionSelector grades={grades} isDungeon={combatMode} />
+          <EvalMissionSelector grades={grades} columns={columns} isDungeon={combatMode} />
         </div>
 
         {/* Center — Character display */}
@@ -118,7 +118,7 @@ export default function StudentPanel() {
             xpToNextLevel={xpToNext}
           />
           <div className="flex-1 overflow-auto">
-            <EvalList grades={grades} isDungeon={combatMode} />
+            <EvalList grades={grades} columns={columns} isDungeon={combatMode} />
           </div>
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function StudentPanel() {
           isVictoryAnim={victoryAnim}
           isDungeon={combatMode}
         />
-        <EvalList grades={grades} isDungeon={combatMode} />
+        <EvalList grades={grades} columns={columns} isDungeon={combatMode} />
       </div>
     </div>
   )

@@ -3,7 +3,6 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // evaluations: teachers can read/write; students can only read their own
-    // Students can also create their own evaluation docs during registration
     match /evaluations/{evalId} {
       allow read: if request.auth != null
         && (
@@ -11,7 +10,10 @@ service cloud.firestore {
           || resource.data.studentUid == request.auth.uid
         );
       allow create: if request.auth != null
-        && request.resource.data.studentUid == request.auth.uid;
+        && (
+          request.resource.data.studentUid == request.auth.uid
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher"
+        );
       allow update, delete: if request.auth != null
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
     }
@@ -34,6 +36,13 @@ service cloud.firestore {
     // outbox: authenticated users can read/write (system events)
     match /outbox/{entryId} {
       allow read, write: if request.auth != null;
+    }
+
+    // config: teachers can read/write; any authenticated user can read
+    match /config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
     }
 
     // attendance: teachers can create/update sessions; students can read their own records

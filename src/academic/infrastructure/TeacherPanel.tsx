@@ -1,5 +1,7 @@
 import { useState } from "react"
 import clsx from "clsx"
+import { doc, setDoc, writeBatch, deleteField } from "firebase/firestore"
+import { db } from "../../shared/firebase"
 import { outboxService, attendanceService } from "../../shared/services"
 import { UpdateGrade } from "../application/UpdateGrade"
 import { useLogout } from "../../shared/useLogout"
@@ -7,16 +9,22 @@ import { useAuth } from "../../shared/AuthContext"
 import type { EvaluationStatus } from "../domain/Evaluation"
 import { useTeacherData } from "./useTeacherData"
 import type { StudentDocument } from "./useTeacherData"
-import StudentRow, { EVAL_KEYS, EVAL_LABELS, HIDDEN_SM } from "./StudentRow"
+import { useEvalColumns, DEFAULT_COLUMNS } from "../../shared/useEvalColumns"
+import type { EvalColumn } from "../../shared/useEvalColumns"
+import StudentRow from "./StudentRow"
 import AttendanceSession from "./AttendanceSession"
 import StudentDetailModal from "./StudentDetailModal"
 import type { CellState } from "./GradeCell"
 import styles from "./TeacherPanel.module.css"
 
-export type EvalKey = typeof EVAL_KEYS[number]
 type CellKey = string
 
+const CONFIG_DOC = doc(db, "config", "evalColumns")
 const updateGradeUC = new UpdateGrade(outboxService)
+
+type ConfirmAction =
+  | { type: "bulk-reset"; col: EvalColumn }
+  | { type: "delete-col"; col: EvalColumn }
 
 export default function TeacherPanel() {
   const { user } = useAuth()
@@ -34,11 +42,22 @@ export default function TeacherPanel() {
     setFilterText,
     loadMore,
   } = useTeacherData()
+  const { columns } = useEvalColumns()
+
   const [cellStates, setCellStates] = useState<Record<CellKey, CellState>>({})
   const [creatingSession, setCreatingSession] = useState(false)
   const [checkStates, setCheckStates] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<"grades" | "attendance">("grades")
   const [detailStudent, setDetailStudent] = useState<StudentDocument | null>(null)
+
+  // Column management state
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newColLabel, setNewColLabel] = useState("")
+  const [newColType, setNewColType] = useState<"TP" | "Parcial">("TP")
+  const [editingKey, setEditingKey] = useState<string | null>(null)
+  const [editLabel, setEditLabel] = useState("")
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
+  const [bulkingKey, setBulkingKey] = useState<string | null>(null)
 
   async function handleCreateSession() {
     if (!user) return
@@ -64,7 +83,7 @@ export default function TeacherPanel() {
     }
   }
 
-  async function handleCellChange(studentUid: string, evalKey: EvalKey, newStatus: EvaluationStatus, newScore: number) {
+  async function handleCellChange(studentUid: string, evalKey: string, newStatus: EvaluationStatus, newScore: number) {
     const cellKey: CellKey = `${studentUid}-${evalKey}`
     setCellStates((p) => ({ ...p, [cellKey]: { saving: true, error: false, pendingStatus: newStatus, pendingScore: newScore } }))
     try {
@@ -76,6 +95,64 @@ export default function TeacherPanel() {
     }
   }
 
+  // ── Column management ──
+
+  async function handleAddColumn() {
+    if (!newColLabel.trim()) return
+    const existing = columns.length > 0 ? columns : DEFAULT_COLUMNS
+    const nextIndex = Math.max(0, ...existing.filter(c => c.type === newColType).map(c => c.index)) + 1
+    const key = `${newColType === "TP" ? "tp" : "parcial"}${nextIndex}`
+    const newCol: EvalColumn = { key, label: newColLabel.trim(), type: newColType, index: nextIndex }
+    await setDoc(CONFIG_DOC, { columns: [...existing, newCol] })
+    setNewColLabel("")
+    setNewColType("TP")
+    setShowAddForm(false)
+  }
+
+  async function handleRenameColumn(col: EvalColumn) {
+    if (!editLabel.trim() || editLabel.trim() === col.label) {
+      setEditingKey(null)
+      return
+    }
+    const updated = columns.map(c => c.key === col.key ? { ...c, label: editLabel.trim() } : c)
+    await setDoc(CONFIG_DOC, { columns: updated })
+    setEditingKey(null)
+  }
+
+  async function handleDeleteColumn(col: EvalColumn) {
+    const updated = columns.filter(c => c.key !== col.key)
+    const batch = writeBatch(db)
+    // Remove from config
+    batch.set(CONFIG_DOC, { columns: updated })
+    // Clean gradesSummary for every loaded student
+    for (const student of students) {
+      const userRef = doc(db, "users", student.uid)
+      batch.update(userRef, { [`gradesSummary.${col.key}`]: deleteField() })
+      const evalRef = doc(db, "evaluations", `${student.uid}_${col.key}`)
+      batch.delete(evalRef)
+    }
+    await batch.commit()
+    setConfirmAction(null)
+  }
+
+  async function handleBulkReset(col: EvalColumn) {
+    setBulkingKey(col.key)
+    try {
+      await Promise.all(
+        students.map(s => updateGradeUC.execute(`${s.uid}_${col.key}`, "Pending", 0))
+      )
+    } finally {
+      setBulkingKey(null)
+      setConfirmAction(null)
+    }
+  }
+
+  async function handleConfirm() {
+    if (!confirmAction) return
+    if (confirmAction.type === "bulk-reset") await handleBulkReset(confirmAction.col)
+    if (confirmAction.type === "delete-col") await handleDeleteColumn(confirmAction.col)
+  }
+
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100svh", background: "#f8fafc", flexDirection: "column", gap: "1rem" }}>
       <div style={{ fontSize: "2.5rem" }}>⏳</div>
@@ -85,12 +162,36 @@ export default function TeacherPanel() {
 
   return (
     <div className={styles.root}>
+      {/* Confirm dialog */}
+      {confirmAction && (
+        <div className={styles.confirmBackdrop}>
+          <div className={styles.confirmBox}>
+            <p className={styles.confirmTitle}>
+              {confirmAction.type === "bulk-reset" ? "¿Marcar todos como Pendiente?" : "¿Eliminar columna?"}
+            </p>
+            <p className={styles.confirmMsg}>
+              {confirmAction.type === "bulk-reset"
+                ? `Se resetearán las notas de ${students.length} alumno(s) en "${confirmAction.col.label}". Esta acción no revierte el XP ya otorgado.`
+                : `Se eliminará la columna "${confirmAction.col.label}" y sus datos en todos los alumnos cargados.`}
+              {hasMore && " Hay alumnos en páginas no cargadas que no serán afectados."}
+            </p>
+            <div className={styles.confirmActions}>
+              <button className={styles.confirmCancel} onClick={() => setConfirmAction(null)}>Cancelar</button>
+              <button className={styles.confirmOk} onClick={handleConfirm}>
+                {confirmAction.type === "bulk-reset" ? "Resetear" : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {detailStudent && (
         <StudentDetailModal
           student={detailStudent}
           onClose={() => setDetailStudent(null)}
         />
       )}
+
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
           <h1 className={styles.title}>🎓 Panel del Profesor</h1>
@@ -131,8 +232,8 @@ export default function TeacherPanel() {
 
         {activeTab === "grades" && (
           <div className={styles.card}>
-            {/* Search */}
-            <div className={styles.searchWrap}>
+            {/* Search + add column bar */}
+            <div className={styles.addColBar}>
               <input
                 className={styles.searchInput}
                 type="search"
@@ -140,11 +241,42 @@ export default function TeacherPanel() {
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
                 aria-label="Buscar alumno"
+                style={{ flex: 1, minWidth: 180 }}
               />
               {filterText && (
                 <span className={styles.searchCount}>
                   {filteredStudents.length} resultado{filteredStudents.length !== 1 ? "s" : ""}
                 </span>
+              )}
+              {showAddForm ? (
+                <div className={styles.addColForm}>
+                  <input
+                    className={styles.addColInput}
+                    placeholder="Nombre columna"
+                    value={newColLabel}
+                    onChange={(e) => setNewColLabel(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddColumn(); if (e.key === "Escape") setShowAddForm(false) }}
+                    autoFocus
+                  />
+                  <select
+                    className={styles.addColTypeSelect}
+                    value={newColType}
+                    onChange={(e) => setNewColType(e.target.value as "TP" | "Parcial")}
+                  >
+                    <option value="TP">TP</option>
+                    <option value="Parcial">Parcial</option>
+                  </select>
+                  <button className={styles.addColConfirm} onClick={handleAddColumn} disabled={!newColLabel.trim()}>
+                    Agregar
+                  </button>
+                  <button className={styles.addColCancel} onClick={() => { setShowAddForm(false); setNewColLabel("") }}>
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button className={styles.addColBtn} onClick={() => setShowAddForm(true)}>
+                  + Agregar evaluación
+                </button>
               )}
             </div>
 
@@ -153,11 +285,47 @@ export default function TeacherPanel() {
                 <thead>
                   <tr>
                     <th scope="col">Alumno</th>
-                    <th scope="col">Nivel</th>
+                    <th scope="col">Niv.</th>
                     <th scope="col">XP</th>
-                    {EVAL_KEYS.map((key) => (
-                      <th key={key} scope="col" className={HIDDEN_SM[key] ? styles.colSmHidden : undefined}>
-                        {EVAL_LABELS[key]}
+                    {columns.map((col) => (
+                      <th key={col.key} scope="col">
+                        <div className={styles.colHeader}>
+                          {editingKey === col.key ? (
+                            <input
+                              className={styles.colLabelInput}
+                              value={editLabel}
+                              autoFocus
+                              onChange={(e) => setEditLabel(e.target.value)}
+                              onBlur={() => handleRenameColumn(col)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRenameColumn(col)
+                                if (e.key === "Escape") setEditingKey(null)
+                              }}
+                            />
+                          ) : (
+                            <span className={styles.colHeaderLabel}>{col.label}</span>
+                          )}
+                          <div className={styles.colHeaderActions}>
+                            <button
+                              className={styles.colActionBtn}
+                              title="Renombrar columna"
+                              onClick={() => { setEditingKey(col.key); setEditLabel(col.label) }}
+                            >✏️</button>
+                            <button
+                              className={styles.bulkResetBtn}
+                              title="Marcar todos como Pendiente"
+                              disabled={bulkingKey === col.key}
+                              onClick={() => setConfirmAction({ type: "bulk-reset", col })}
+                            >
+                              {bulkingKey === col.key ? "⏳" : "↺"}
+                            </button>
+                            <button
+                              className={styles.colActionBtn}
+                              title="Eliminar columna"
+                              onClick={() => setConfirmAction({ type: "delete-col", col })}
+                            >🗑️</button>
+                          </div>
+                        </div>
                       </th>
                     ))}
                     <th scope="col"></th>
@@ -166,7 +334,7 @@ export default function TeacherPanel() {
                 <tbody>
                   {filteredStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={4 + EVAL_KEYS.length}>
+                      <td colSpan={3 + columns.length + 1}>
                         <div className={styles.empty}>
                           <div className={styles.emptyIcon}>{filterText ? "🔍" : "🎒"}</div>
                           <div className={styles.emptyTitle}>
@@ -185,6 +353,7 @@ export default function TeacherPanel() {
                       <StudentRow
                         key={student.uid}
                         student={student}
+                        columns={columns}
                         cellStates={cellStates}
                         onCellChange={handleCellChange}
                         onViewDetails={setDetailStudent}

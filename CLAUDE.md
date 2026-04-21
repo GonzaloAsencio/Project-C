@@ -49,7 +49,9 @@ Attendance XP (+20) bypasses the outbox — `AttendanceService.markPresent()` ca
 | `attendance/{classId}` | `date`, `createdBy`, `presentStudents[]` |
 | `outbox/{id}` | `type`, `payload`, `status` (`"pending"` \| `"processed"`), `createdAt` |
 
-Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parcial2`. `AvatarClass` values: `"Sword"` | `"Axe"` | `"Dagger"` | `"Bow"` | `"Magic"` (each has an RPG subtitle displayed in `ProfileCard`).
+Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parcial2` (dynamically extensible — see `useEvalColumns`). `AvatarClass` values: `"Sword"` | `"Axe"` | `"Dagger"` | `"Bow"` | `"Magic"` (each has an RPG subtitle displayed in `ProfileCard`).
+
+A fifth collection `config/evalColumns` stores the active column definitions: `{ columns: EvalColumn[] }` where `EvalColumn = { key, label, type: "TP"|"Parcial", index }`. Teachers can write it; any authenticated user can read it. `DEFAULT_COLUMNS` in `useEvalColumns.ts` is the in-memory fallback if the document doesn't exist yet.
 
 `evalId` format: `"{studentUid}_{tp|parcial}{index}"` (e.g. `"abc123_tp1"`). `UpdateGrade.parseEvalId()` decodes this.
 
@@ -65,20 +67,25 @@ Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parci
 
 ### Reconciliation
 
-`ReconcileGrades.execute(studentUid)` rebuilds `gradesSummary` from the `evaluations` collection if a discrepancy is detected. Called from `StudentDetailModal` when a teacher opens it.
+`ReconcileGrades.execute(studentUid)` rebuilds `gradesSummary` from the `evaluations` collection if a discrepancy is detected. Called from `StudentDetailModal` when a teacher opens it. It is column-agnostic — it derives keys directly from the evaluation docs found, not from any hardcoded list.
 
 `useStudentData` also triggers reconciliation automatically on mount when `gradesSummary` is empty but `xp > 0` (indicates a sync gap), using a `reconciling` ref guard to run it only once.
 
 ### Data-fetching hooks
 
-- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) to trigger overlay animations and canvas-confetti. Fills missing `gradesSummary` keys with `{ status: "Pending", score: 0 }` defaults so the UI always has all four eval slots. Also exports `EVAL_KEYS` (`["tp1","tp2","parcial1","parcial2"]`), `EVAL_LABELS`, `GradeEntry`, and `UserDocument` — import these from `useStudentData` rather than redefining them in other components.
+- **`useEvalColumns`** (`shared/`) — `onSnapshot` subscription to `config/evalColumns`. Returns `{ columns: EvalColumn[], loading }`. Falls back to `DEFAULT_COLUMNS` if the document doesn't exist. Used by both teacher and student views — always import `EvalColumn` and column data from here.
+- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) to trigger overlay animations and canvas-confetti. Internally calls `useEvalColumns` and fills missing `gradesSummary` keys with `{ status: "Pending", score: 0 }` defaults. Exposes `columns: EvalColumn[]` in its return value so consumers don't need to call `useEvalColumns` separately. Exports `GradeEntry` and `UserDocument`.
 - **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`.
 
 ### combatMode / isDungeon
 
-`GetStudentDashboard.execute()` returns `combatMode: true` when any evaluation has `status === "Pending"`. In practice, `StudentPanel` ignores this and recomputes the flag client-side: `EVAL_KEYS.some((k) => grades[k]?.status === "Pending")`.
+`GetStudentDashboard.execute()` returns `combatMode: true` when any evaluation has `status === "Pending"`. In practice, `StudentPanel` ignores this and recomputes the flag client-side using the live `columns` from `useStudentData`: `columns.some((c) => grades[c.key]?.status === "Pending")`.
 
-UI components (`EvalList`, `EvalMissionSelector`) receive the theme as an `isDungeon: boolean` prop — the same concept, different name at the presentation layer. When `isDungeon` is true the student sees a dark dungeon theme; when false, a light parchment theme.
+UI components (`EvalList`, `EvalMissionSelector`) receive both `columns: EvalColumn[]` and `isDungeon: boolean` as props. `isDungeon` is the presentation-layer name for `combatMode`. When true the student sees a dark dungeon theme; when false, a light parchment theme.
+
+### Grade cell auto-status
+
+`GradeCell` derives the status automatically when the teacher changes the score (on blur): score ≥ 4 → `"Victory"`, score < 4 → `"Defeat"`. The status dropdown remains editable for manual overrides (e.g. resetting to `"Pending"`). The Firestore `create` rule on `evaluations/` allows teachers to create new eval docs (needed for new dynamic columns whose docs don't exist yet).
 
 ### Shared utilities
 

@@ -1,11 +1,12 @@
 import { Trophy, Skull, Sword } from "lucide-react"
 import { cn } from "../../shared/cn"
 import type { GradeEntry } from "./useStudentData"
-import { EVAL_KEYS, EVAL_LABELS } from "./useStudentData"
+import type { EvalColumn } from "../../shared/useEvalColumns"
 import type { EvaluationStatus } from "../../academic/domain/Evaluation"
 
 interface EvalListProps {
   grades: Record<string, GradeEntry | undefined>
+  columns: EvalColumn[]
   isDungeon: boolean
 }
 
@@ -45,14 +46,7 @@ const STATUS_ICON_COLORS: Record<EvaluationStatus, { ring: string; icon: string;
 const CARD_LIGHT = "bg-[#faf7f2] border border-[#cfc0a4] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.07)]"
 const CARD_DUNGEON = "bg-[#1c1828]/70 border border-[#3d3458] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_4px_rgba(0,0,0,0.35)]"
 
-const EVAL_SUBTITLE: Record<string, string> = {
-  tp1:      "Aprobar Trabajo Práctico 1",
-  tp2:      "Aprobar Trabajo Práctico 2",
-  parcial1: "Aprobar Parcial 1",
-  parcial2: "Aprobar Parcial 2",
-}
-
-export default function EvalList({ grades, isDungeon }: EvalListProps) {
+export default function EvalList({ grades, columns, isDungeon }: EvalListProps) {
   return (
     <div className={cn(
       "rounded-2xl shadow-sm border w-full overflow-hidden",
@@ -78,15 +72,15 @@ export default function EvalList({ grades, isDungeon }: EvalListProps) {
 
       {/* Quest cards */}
       <div className="flex flex-col gap-2.5 p-4">
-        {EVAL_KEYS.map((key) => {
-          const entry = grades[key]
+        {columns.map((col) => {
+          const entry = grades[col.key]
           const status: EvaluationStatus = entry?.status ?? "Pending"
           const Icon = STATUS_ICON[status]
           const colors = STATUS_ICON_COLORS[status]
 
           return (
             <div
-              key={key}
+              key={col.key}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150",
                 isDungeon ? CARD_DUNGEON : CARD_LIGHT,
@@ -104,11 +98,11 @@ export default function EvalList({ grades, isDungeon }: EvalListProps) {
               {/* Title | separator | subtitle */}
               <div className="flex-1 min-w-0">
                 <p className={cn("font-semibold text-xs leading-tight", isDungeon ? "text-white/90" : "text-[#2d2460]")}>
-                  {EVAL_LABELS[key]}
+                  {col.label}
                 </p>
                 <div className={cn("h-px w-full my-1", isDungeon ? "bg-white/10" : "bg-[#cfc0a4]/60")} />
                 <p className={cn("text-[10px] truncate", colors.label)}>
-                  {EVAL_SUBTITLE[key]}
+                  {col.type === "TP" ? `Aprobar Trabajo Práctico ${col.index}` : `Aprobar Parcial ${col.index}`}
                 </p>
               </div>
 

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import type { EvaluationStatus } from "../domain/Evaluation"
 import type { GradeEntry } from "./useTeacherData"
-import type { EvalKey } from "./TeacherPanel"
 import styles from "./TeacherPanel.module.css"
 
 const STATUS_OPTIONS: EvaluationStatus[] = ["Pending", "Victory", "Defeat"]
@@ -23,10 +22,10 @@ export interface CellState {
 
 interface GradeCellProps {
   studentUid: string
-  evalKey: EvalKey
+  evalKey: string
   entry: GradeEntry | undefined
   cellState: CellState | undefined
-  onCellChange: (uid: string, evalKey: EvalKey, status: EvaluationStatus, score: number) => void
+  onCellChange: (uid: string, evalKey: string, status: EvaluationStatus, score: number) => void
 }
 
 export default function GradeCell({ studentUid, evalKey, entry, cellState, onCellChange }: GradeCellProps) {
@@ -56,21 +55,7 @@ export default function GradeCell({ studentUid, evalKey, entry, cellState, onCel
         <span className={styles.error}>⚠️ Error al guardar</span>
       ) : null}
 
-      <select
-        className={styles.statusSelect}
-        value={displayStatus}
-        disabled={saving}
-        aria-label={`Estado de ${evalKey}`}
-        style={{ color: colors.text, background: colors.bg, borderColor: colors.bg === "#f8fafc" ? "#e2e8f0" : colors.bg }}
-        onChange={(e) => onCellChange(studentUid, evalKey, e.target.value as EvaluationStatus, localScore)}
-      >
-        {STATUS_OPTIONS.map((s) => (
-          <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-        ))}
-      </select>
-
-      <div className={styles.scoreRow}>
-        <span className={styles.scoreLabel}>Nota:</span>
+      <div className={styles.gradeCellRow}>
         <input
           type="number"
           className={styles.scoreInput}
@@ -80,10 +65,24 @@ export default function GradeCell({ studentUid, evalKey, entry, cellState, onCel
           aria-label={`Puntaje de ${evalKey}`}
           onChange={(e) => setLocalScore(Number(e.target.value))}
           onBlur={() => {
-            if (localScore !== committedScore)
-              onCellChange(studentUid, evalKey, committedStatus, localScore)
+            if (localScore !== committedScore) {
+              const autoStatus: EvaluationStatus = localScore >= 4 ? "Victory" : "Defeat"
+              onCellChange(studentUid, evalKey, autoStatus, localScore)
+            }
           }}
         />
+        <select
+          className={styles.statusSelect}
+          value={displayStatus}
+          disabled={saving}
+          aria-label={`Estado de ${evalKey}`}
+          style={{ color: colors.text, background: colors.bg }}
+          onChange={(e) => onCellChange(studentUid, evalKey, e.target.value as EvaluationStatus, localScore)}
+        >
+          {STATUS_OPTIONS.map((s) => (
+            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+          ))}
+        </select>
       </div>
     </div>
   )

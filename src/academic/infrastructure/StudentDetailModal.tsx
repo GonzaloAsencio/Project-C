@@ -12,12 +12,8 @@ import {
 } from "recharts"
 import type { StudentDocument } from "./useTeacherData"
 import type { EvaluationStatus } from "../domain/Evaluation"
+import { useEvalColumns } from "../../shared/useEvalColumns"
 import styles from "./StudentDetailModal.module.css"
-
-const EVAL_KEYS = ["tp1", "tp2", "parcial1", "parcial2"] as const
-const EVAL_LABELS: Record<string, string> = {
-  tp1: "TP 1", tp2: "TP 2", parcial1: "Parcial 1", parcial2: "Parcial 2",
-}
 
 const STATUS_COLORS: Record<EvaluationStatus, string> = {
   Victory: "#4ade80", Defeat: "#f87171", Pending: "#facc15",
@@ -37,6 +33,8 @@ interface Props {
 }
 
 export default function StudentDetailModal({ student, onClose }: Props) {
+  const { columns } = useEvalColumns()
+
   // Close on Escape
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose() }
@@ -47,17 +45,17 @@ export default function StudentDetailModal({ student, onClose }: Props) {
   const grades = student.gradesSummary ?? {}
   const initials = (student.displayName || student.email).slice(0, 2).toUpperCase()
 
-  const chartData = EVAL_KEYS.map((key) => ({
-    name: EVAL_LABELS[key],
-    score: grades[key]?.status === "Pending" ? 0 : (grades[key]?.score ?? 0),
-    status: (grades[key]?.status ?? "Pending") as EvaluationStatus,
+  const chartData = columns.map((col) => ({
+    name: col.label,
+    score: grades[col.key]?.status === "Pending" ? 0 : (grades[col.key]?.score ?? 0),
+    status: (grades[col.key]?.status ?? "Pending") as EvaluationStatus,
   }))
 
-  const victories = EVAL_KEYS.filter((k) => grades[k]?.status === "Victory").length
+  const victories = columns.filter((c) => grades[c.key]?.status === "Victory").length
   const avgScore = (() => {
-    const graded = EVAL_KEYS.filter((k) => grades[k]?.status !== "Pending" && grades[k] != null)
+    const graded = columns.filter((c) => grades[c.key]?.status !== "Pending" && grades[c.key] != null)
     if (!graded.length) return "—"
-    const avg = graded.reduce((sum, k) => sum + (grades[k]?.score ?? 0), 0) / graded.length
+    const avg = graded.reduce((sum, c) => sum + (grades[c.key]?.score ?? 0), 0) / graded.length
     return avg.toFixed(1)
   })()
 
@@ -93,7 +91,7 @@ export default function StudentDetailModal({ student, onClose }: Props) {
             <span className={styles.statLabel}>XP Total</span>
           </div>
           <div className={styles.statChip}>
-            <span className={styles.statValue}>{victories}/{EVAL_KEYS.length}</span>
+            <span className={styles.statValue}>{victories}/{columns.length}</span>
             <span className={styles.statLabel}>Victorias</span>
           </div>
           <div className={styles.statChip}>
@@ -130,12 +128,12 @@ export default function StudentDetailModal({ student, onClose }: Props) {
         {/* Eval list */}
         <div className={styles.evalList}>
           <p className={styles.sectionTitle}>Detalle</p>
-          {EVAL_KEYS.map((key) => {
-            const entry = grades[key]
+          {columns.map((col) => {
+            const entry = grades[col.key]
             const status: EvaluationStatus = entry?.status ?? "Pending"
             return (
-              <div key={key} className={clsx(styles.evalRow, EVAL_ROW_CLASS[status])}>
-                <span className={styles.evalName}>{EVAL_LABELS[key]}</span>
+              <div key={col.key} className={clsx(styles.evalRow, EVAL_ROW_CLASS[status])}>
+                <span className={styles.evalName}>{col.label}</span>
                 <div className={styles.evalRight}>
                   {status !== "Pending" && (
                     <span className={styles.evalScore}>{entry?.score ?? 0} / 10</span>

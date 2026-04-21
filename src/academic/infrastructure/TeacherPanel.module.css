@@ -83,7 +83,7 @@
 /* ── Table ── */
 .tableWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-.table { width: 100%; border-collapse: collapse; min-width: 700px; font-size: 0.9rem; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .table thead tr { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
 
 .table th {
@@ -144,36 +144,30 @@
 .xpValue { font-weight: 700; color: #1e293b; font-size: 0.95rem; }
 
 /* ── Grade cell ── */
-.gradeCell { display: flex; flex-direction: column; gap: 0.4rem; min-width: 150px; }
+.gradeCell { display: flex; flex-direction: column; gap: 0.3rem; min-width: 110px; }
+.gradeCellRow { display: flex; align-items: center; gap: 0.35rem; }
 
 .statusSelect {
-  width: 100%;
-  min-height: 40px;
-  padding: 0.4rem 0.6rem;
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0.3rem 0.4rem;
   border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border: 1.5px solid transparent;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
-  background: #fff;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.6rem center;
-  padding-right: 2rem;
 }
 
 .statusSelect:focus { outline: none; border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12); }
 .statusSelect:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.scoreRow { display: flex; align-items: center; gap: 0.5rem; }
-.scoreLabel { font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
-
 .scoreInput {
-  width: 64px;
-  min-height: 36px;
-  padding: 0.35rem 0.5rem;
+  width: 52px;
+  min-height: 34px;
+  padding: 0.3rem 0.4rem;
   border-radius: 8px;
   border: 1.5px solid #e2e8f0;
   font-size: 0.875rem;
@@ -181,10 +175,186 @@
   text-align: center;
   background: #fff;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
 }
 
 .scoreInput:focus { outline: none; border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12); }
 .scoreInput:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Column header management ── */
+.colHeader { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; min-width: 110px; }
+.colHeaderLabel { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; white-space: nowrap; }
+.colHeaderActions { display: flex; gap: 0.25rem; align-items: center; }
+
+.colActionBtn {
+  padding: 0.15rem 0.35rem;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.colActionBtn:hover { border-color: #a855f7; color: #7c3aed; background: #faf5ff; }
+
+.bulkResetBtn {
+  padding: 0.15rem 0.35rem;
+  border-radius: 5px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.bulkResetBtn:hover { border-color: #f59e0b; background: #fef3c7; }
+
+.colLabelInput {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.4rem;
+  border: 1.5px solid #a855f7;
+  border-radius: 5px;
+  width: 80px;
+  background: #fff;
+  color: #1e293b;
+}
+.colLabelInput:focus { outline: none; box-shadow: 0 0 0 2px rgba(168,85,247,0.15); }
+
+/* ── Add column toolbar ── */
+.addColBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+
+.addColBtn {
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  border: 1.5px dashed #a855f7;
+  background: transparent;
+  color: #7c3aed;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.addColBtn:hover { background: #faf5ff; }
+
+.addColForm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.addColInput {
+  padding: 0.35rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  width: 120px;
+  background: #f8fafc;
+  color: #1e293b;
+}
+.addColInput:focus { outline: none; border-color: #a855f7; background: #fff; box-shadow: 0 0 0 3px rgba(168,85,247,0.1); }
+
+.addColTypeSelect {
+  padding: 0.35rem 0.5rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: #f8fafc;
+  color: #1e293b;
+  cursor: pointer;
+}
+.addColTypeSelect:focus { outline: none; border-color: #a855f7; }
+
+.addColConfirm {
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.addColConfirm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.addColCancel {
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Confirm dialog ── */
+.confirmBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirmBox {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.confirmTitle { font-size: 1rem; font-weight: 800; color: #1e293b; margin: 0; }
+.confirmMsg { font-size: 0.875rem; color: #64748b; margin: 0; }
+.confirmActions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+.confirmOk {
+  padding: 0.4rem 1.25rem;
+  border-radius: 8px;
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirmOk:hover { background: #dc2626; }
+
+.confirmCancel {
+  padding: 0.4rem 1.25rem;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bulkingBadge {
+  font-size: 0.72rem;
+  color: #a855f7;
+  font-weight: 600;
+  white-space: nowrap;
+}
 
 .saving { font-size: 0.75rem; color: #a855f7; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; }
 .error  { font-size: 0.75rem; color: #ef4444; font-weight: 600; display: flex; align-items: center; gap: 0.3rem; }
