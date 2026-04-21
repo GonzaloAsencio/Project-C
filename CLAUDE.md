@@ -67,6 +67,21 @@ Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parci
 
 `ReconcileGrades.execute(studentUid)` rebuilds `gradesSummary` from the `evaluations` collection if a discrepancy is detected. Called from `StudentDetailModal` when a teacher opens it.
 
+`useStudentData` also triggers reconciliation automatically on mount when `gradesSummary` is empty but `xp > 0` (indicates a sync gap), using a `reconciling` ref guard to run it only once.
+
+### Data-fetching hooks
+
+- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) to trigger overlay animations and canvas-confetti. Fills missing `gradesSummary` keys with `{ status: "Pending", score: 0 }` defaults so the UI always has all four eval slots.
+- **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`.
+
+### combatMode
+
+`GetStudentDashboard.execute()` returns `combatMode: true` when any evaluation has `status === "Pending"`. This flag switches the student UI to a combat/RPG theme (enemy sprite visible, different layout).
+
+### Shared utilities
+
+`src/shared/cn.ts` — thin wrapper around `clsx` for conditional CSS Module class composition.
+
 ### Singleton services
 
 `src/shared/services.ts` exports pre-wired singleton instances (`outboxService`, `attendanceService`). Import from there — don't instantiate these classes directly in components.
