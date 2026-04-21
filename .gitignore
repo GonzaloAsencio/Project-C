@@ -27,3 +27,8 @@ dist-ssr
 .env
 .env.*
 .env.example
+
+# Local agent skills
+.agents/skills/
+.claude/skills/
+.kiro/skills/
