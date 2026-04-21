@@ -15,96 +15,109 @@ const STATUS_ICON: Record<EvaluationStatus, React.ElementType> = {
   Pending: Sword,
 }
 
-const STATUS_ICON_BG: Record<EvaluationStatus, string> = {
-  Victory: "bg-mint/20 text-[#059669]",
-  Defeat:  "bg-red-400/20 text-red-400",
-  Pending: "bg-indigo/10 text-indigo",
-}
-
 const STATUS_LABEL: Record<EvaluationStatus, string> = {
   Victory: "Victoria",
   Defeat:  "Derrota",
   Pending: "Pendiente",
 }
 
-const STATUS_TEXT_COLOR: Record<EvaluationStatus, string> = {
-  Victory: "text-[#059669]",
-  Defeat:  "text-red-400",
-  Pending: "text-indigo",
+const STATUS_ICON_COLORS: Record<EvaluationStatus, { ring: string; icon: string; badge: string; label: string }> = {
+  Victory: {
+    ring:  "shadow-[0_0_0_2px_#f59e0b,0_0_0_4px_#f59e0b22]",
+    icon:  "text-amber-400 bg-amber-400/15",
+    badge: "bg-amber-400/15 text-amber-400 border border-amber-400/30",
+    label: "text-amber-400/60",
+  },
+  Defeat: {
+    ring:  "shadow-[0_0_0_2px_#94a3b8,0_0_0_4px_#94a3b818]",
+    icon:  "text-slate-400 bg-slate-400/10",
+    badge: "bg-slate-400/10 text-slate-400 border border-slate-400/25",
+    label: "text-slate-400/60",
+  },
+  Pending: {
+    ring:  "shadow-[0_0_0_2px_#a5b4fc,0_0_0_4px_#a5b4fc22]",
+    icon:  "text-indigo bg-indigo/10",
+    badge: "bg-indigo/10 text-indigo/70 border border-indigo/20",
+    label: "text-indigo/50",
+  },
+}
+
+const CARD_LIGHT = "bg-[#faf7f2] border border-[#cfc0a4] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.07)]"
+const CARD_DUNGEON = "bg-[#1c1828]/70 border border-[#3d3458] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_4px_rgba(0,0,0,0.35)]"
+
+const EVAL_SUBTITLE: Record<string, string> = {
+  tp1:      "Aprobar Trabajo Práctico 1",
+  tp2:      "Aprobar Trabajo Práctico 2",
+  parcial1: "Aprobar Parcial 1",
+  parcial2: "Aprobar Parcial 2",
 }
 
 export default function EvalList({ grades, isDungeon }: EvalListProps) {
   return (
     <div className={cn(
-      "rounded-2xl p-6 shadow-sm border w-full",
+      "rounded-2xl shadow-sm border w-full overflow-hidden",
       isDungeon
         ? "bg-white/5 border-white/10"
         : "bg-white/80 backdrop-blur-sm border-white/60"
     )}>
-      <div className="flex items-center justify-between mb-4">
+      {/* Header */}
+      <div className={cn(
+        "flex items-center justify-between px-5 py-4 border-b",
+        isDungeon ? "border-white/10" : "border-black/5"
+      )}>
         <div>
-          <h2 className={cn("text-xl font-bold tracking-tight", isDungeon ? "text-white" : "text-[#1e1b4b]")}>
-            EVALUACIONES
+          <h2 className={cn("text-base font-bold tracking-widest uppercase", isDungeon ? "text-white" : "text-[#1e1b4b]")}>
+            Evaluaciones
           </h2>
-          <p className={cn("text-sm", isDungeon ? "text-white/60" : "text-gray-500")}>
-            Resultados de tus trabajos y parciales
+          <p className={cn("text-xs mt-0.5", isDungeon ? "text-white/40" : "text-gray-400")}>
+            Trabajos y parciales
           </p>
         </div>
-        <Trophy className="w-5 h-5 text-gold-dark" />
+        <Trophy className="w-4 h-4 text-gold-dark opacity-70" />
       </div>
 
-      <div className="flex flex-col gap-3">
+      {/* Quest cards */}
+      <div className="flex flex-col gap-2.5 p-4">
         {EVAL_KEYS.map((key) => {
           const entry = grades[key]
           const status: EvaluationStatus = entry?.status ?? "Pending"
           const Icon = STATUS_ICON[status]
+          const colors = STATUS_ICON_COLORS[status]
 
           return (
             <div
               key={key}
               className={cn(
-                "flex items-center gap-4 p-4 rounded-xl transition-all duration-200",
-                status === "Victory"
-                  ? "bg-mint/10 border border-mint/40 shadow-sm shadow-mint/10"
-                  : status === "Defeat"
-                    ? "bg-red-400/10 border border-red-400/40 shadow-sm shadow-red-400/10"
-                    : isDungeon
-                      ? "bg-indigo/10 border border-indigo/30"
-                      : "bg-indigo/5 border border-indigo/20"
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150",
+                isDungeon ? CARD_DUNGEON : CARD_LIGHT,
               )}
             >
-              {/* Icon */}
-              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", STATUS_ICON_BG[status])}>
-                <Icon className="w-5 h-5" />
+              {/* Circular icon with metallic double-ring */}
+              <div className={cn(
+                "w-9 h-9 rounded-full flex items-center justify-center shrink-0",
+                colors.icon,
+                colors.ring,
+              )}>
+                <Icon className="w-4 h-4" />
               </div>
 
-              {/* Label + status */}
+              {/* Title | separator | subtitle */}
               <div className="flex-1 min-w-0">
-                <p className={cn("font-semibold text-sm", isDungeon ? "text-white" : "text-[#1e1b4b]")}>
+                <p className={cn("font-semibold text-xs leading-tight", isDungeon ? "text-white/90" : "text-[#2d2460]")}>
                   {EVAL_LABELS[key]}
                 </p>
-                <p className={cn("text-xs font-medium mt-0.5", STATUS_TEXT_COLOR[status])}>
-                  {STATUS_LABEL[status]}
+                <div className={cn("h-px w-full my-1", isDungeon ? "bg-white/10" : "bg-[#cfc0a4]/60")} />
+                <p className={cn("text-[10px] truncate", colors.label)}>
+                  {EVAL_SUBTITLE[key]}
                 </p>
               </div>
 
-              {/* Score badge */}
-              {entry && status !== "Pending" && (
-                <div className={cn(
-                  "px-3 py-1.5 rounded-full shrink-0 font-semibold text-sm",
-                  status === "Victory"
-                    ? "bg-mint/20 text-[#059669]"
-                    : "bg-red-400/20 text-red-400"
-                )}>
-                  {entry.score} / 10
-                </div>
-              )}
-
-              {status === "Pending" && (
-                <div className="bg-indigo/10 px-3 py-1.5 rounded-full shrink-0">
-                  <span className="text-sm font-semibold text-indigo">—</span>
-                </div>
-              )}
+              {/* Score / status badge */}
+              <div className={cn("px-3 py-1 rounded-full shrink-0 text-xs font-semibold tabular-nums", colors.badge)}>
+                {status !== "Pending" && entry
+                  ? `${entry.score} / 10`
+                  : STATUS_LABEL[status]}
+              </div>
             </div>
           )
         })}

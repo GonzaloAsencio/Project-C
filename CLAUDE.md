@@ -92,7 +92,15 @@ Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parci
 
 ### Styling
 
-Components use **CSS Modules** (`.module.css` files co-located with the component). No global CSS framework.
+Components use a mix of **Tailwind CSS v4** (utility classes) and **CSS Modules** (`.module.css` co-located files). Tailwind is loaded via `@tailwindcss/vite` plugin; `tw-animate-css` adds animation utilities. `index.css` defines an RPG-themed palette via CSS custom properties (shadcn/ui-style `--background`, `--primary`, etc.) that the Tailwind theme inherits. Use `cn()` from `src/shared/cn.ts` (a `clsx` wrapper) to merge class names.
+
+### Key dependencies
+
+- **react-router-dom v7** — `BrowserRouter`/`Routes`; `StudentPanel` and `TeacherPanel` are code-split via `lazy()` + `Suspense`.
+- **React 19** — `ref` is a plain prop (no `forwardRef`); `use()` replaces `useContext()`.
+- **recharts** — used for charts in the teacher view.
+- **lucide-react** — icon library.
+- **canvas-confetti** — dynamically imported (`await import(...)`) on victory events to avoid bundle bloat.
 
 ### Testing
 
