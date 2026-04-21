@@ -72,6 +72,8 @@ function MetallicRing() {
 }
 
 export default function EvalMissionSelector({ grades, columns, isDungeon }: EvalMissionSelectorProps) {
+  if (columns.length === 0) return null
+
   return (
     <div className={cn(
       "relative flex flex-col items-center py-8 px-6 rounded-3xl",

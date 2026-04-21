@@ -72,6 +72,11 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
 
       {/* Quest cards */}
       <div className="flex flex-col gap-2.5 p-4">
+        {columns.length === 0 && (
+          <p className={cn("text-center text-xs py-4", isDungeon ? "text-white/40" : "text-gray-400")}>
+            No hay evaluaciones creadas
+          </p>
+        )}
         {columns.map((col) => {
           const entry = grades[col.key]
           const status: EvaluationStatus = entry?.status ?? "Pending"
