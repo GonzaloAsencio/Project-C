@@ -1,16 +1,16 @@
 import { cn } from "../../shared/cn"
 import type { AvatarClass } from "../domain/User"
 
-const LEVEL_GRADIENT: Record<AvatarClass, string> = {
-  Sword:  "linear-gradient(135deg,#3b82f6,#1d4ed8)",
-  Axe:    "linear-gradient(135deg,#ef4444,#b91c1c)",
-  Dagger: "linear-gradient(135deg,#10b981,#065f46)",
-  Bow:    "linear-gradient(135deg,#f59e0b,#b45309)",
-  Magic:  "linear-gradient(135deg,#a855f7,#7c3aed)",
-}
-
 const AVATAR_EMOJI: Record<AvatarClass, string> = {
   Sword: "⚔️", Axe: "🪓", Dagger: "🗡️", Bow: "🏹", Magic: "🔮",
+}
+
+const AVATAR_SUBTITLE: Record<AvatarClass, string> = {
+  Sword:  "Maestro de la Espada",
+  Axe:    "Berserker del Hacha",
+  Dagger: "Asesino Veloz",
+  Bow:    "Arquero de Élite",
+  Magic:  "Hechicero Arcano",
 }
 
 interface ProfileCardProps {
@@ -18,52 +18,68 @@ interface ProfileCardProps {
   avatarClass: AvatarClass
   level: number
   currentXP: number
-  maxXP: number
-  isDungeon: boolean
+  xpToNextLevel: number
 }
 
-export default function ProfileCard({ name, avatarClass, level, currentXP, maxXP, isDungeon }: ProfileCardProps) {
-  const progressPercent = Math.min(100, Math.round((currentXP / maxXP) * 100))
-  const gradient = LEVEL_GRADIENT[avatarClass] ?? LEVEL_GRADIENT.Magic
+export default function ProfileCard({ name, avatarClass, level, currentXP, xpToNextLevel }: ProfileCardProps) {
+  const isMaxLevel = level >= 10
+  const totalXPThisLevel = currentXP + xpToNextLevel
+  const progressPercent = isMaxLevel ? 100 : Math.min(100, Math.round((currentXP / totalXPThisLevel) * 100))
 
   return (
-    <div className={cn(
-      "flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-sm w-full",
-      isDungeon
-        ? "bg-white/5 border-white/10 backdrop-blur-sm"
-        : "bg-white/80 border-white/60 backdrop-blur-sm"
-    )}>
-      {/* Avatar */}
-      <div className="relative shrink-0">
+    <div className="flex flex-col gap-3 w-full px-1">
+
+      {/* ── Name row ── */}
+      <div className="flex items-center gap-3">
         <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-2xl border-2 border-white/30"
-          style={{ background: gradient }}
-          aria-label={`Avatar ${avatarClass}`}
+          className="w-10 h-10 rounded-full border border-[#c8aa6e]/50 flex items-center justify-center text-2xl shrink-0"
         >
           {AVATAR_EMOJI[avatarClass]}
         </div>
-        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-mint rounded-full flex items-center justify-center border-2 border-white text-[9px] font-bold text-[#064e3b]">
-          {level}
+        <div className="min-w-0">
+          <p className="text-[#1e1b4b] font-bold text-base tracking-wide truncate leading-tight">
+            {name}
+          </p>
+          <p className="text-[#c8aa6e] text-[11px] leading-tight mt-0.5 font-medium">
+            {AVATAR_SUBTITLE[avatarClass]}
+          </p>
         </div>
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className={cn("font-bold text-sm truncate", isDungeon ? "text-white" : "text-[#1e1b4b]")}>
-          {name}
-        </p>
-        <div className="flex items-center gap-2 mt-1">
-          <div className="flex-1 h-1.5 bg-gray-200/60 rounded-full overflow-hidden max-w-[100px]">
-            <div
-              className="h-full bg-gradient-to-r from-mint to-mint-light rounded-full transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
+      {/* ── Separator ── */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-px bg-[#c8aa6e]/30" />
+        <span className="text-[#c8aa6e]/60 text-[10px]">◆</span>
+        <div className="flex-1 h-px bg-[#c8aa6e]/30" />
+      </div>
+
+      {/* ── Level / XP row ── */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-baseline justify-between">
+          <div className="flex items-baseline gap-1">
+            <span className="text-[#1e1b4b] font-bold text-lg leading-none">Lv. {level}</span>
+            <span className="text-[#1e1b4b]/40 text-sm font-medium">/ 10</span>
           </div>
-          <span className={cn("text-xs tabular-nums", isDungeon ? "text-white/60" : "text-gray-500")}>
-            {currentXP}/{maxXP} XP
+          <span className="text-[#c8aa6e] text-xs tabular-nums font-semibold">
+            {isMaxLevel ? "MAX" : `${currentXP} / ${totalXPThisLevel} XP`}
           </span>
         </div>
+        <div className="h-2 bg-black/10 rounded-full overflow-hidden backdrop-blur-sm">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${progressPercent}%`,
+              background: "linear-gradient(90deg, #b8860b, #c8aa6e, #f0e6c8)",
+            }}
+          />
+        </div>
+        {!isMaxLevel && (
+          <p className="text-[#1e1b4b]/40 text-[10px] text-right">
+            {xpToNextLevel} XP para siguiente nivel
+          </p>
+        )}
       </div>
+
     </div>
   )
 }

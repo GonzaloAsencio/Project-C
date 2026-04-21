@@ -3,7 +3,6 @@ import clsx from "clsx"
 import { useAuth } from "../../shared/AuthContext"
 import { eventBus } from "../../shared/EventBus"
 import { useLogout } from "../../shared/useLogout"
-import XPBar from "../../gamification/infrastructure/XPBar"
 import EnemySprite from "../../academic/infrastructure/EnemySprite"
 import AvatarDisplay from "./AvatarDisplay"
 import ProfileCard from "./ProfileCard"
@@ -49,6 +48,8 @@ export default function StudentPanel() {
   )
 
   if (!userData) return <div className={styles.loading}>Cargando tu perfil…</div>
+
+  const xpToNext = userData.xpToNextLevel ?? (userData.level * 100 - userData.xp)
 
   return (
     <div className={clsx("min-h-screen flex flex-col overflow-hidden relative", combatMode && styles.rootDungeon)}>
@@ -107,20 +108,14 @@ export default function StudentPanel() {
           />
         </div>
 
-        {/* Right — Profile + XP + Evals */}
+        {/* Right — Profile + Evals */}
         <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4 w-96 max-h-[85vh]">
           <ProfileCard
             name={userData.displayName}
             avatarClass={userData.avatarClass}
             level={userData.level}
             currentXP={userData.xp}
-            maxXP={960}
-            isDungeon={combatMode}
-          />
-          <XPBar
-            currentXP={userData.xp}
-            level={userData.level}
-            xpToNextLevel={userData.xpToNextLevel ?? (userData.level * 100 - userData.xp)}
+            xpToNextLevel={xpToNext}
           />
           <div className="flex-1 overflow-auto">
             <EvalList grades={grades} isDungeon={combatMode} />
@@ -135,13 +130,7 @@ export default function StudentPanel() {
           avatarClass={userData.avatarClass}
           level={userData.level}
           currentXP={userData.xp}
-          maxXP={960}
-          isDungeon={combatMode}
-        />
-        <XPBar
-          currentXP={userData.xp}
-          level={userData.level}
-          xpToNextLevel={userData.xpToNextLevel ?? (userData.level * 100 - userData.xp)}
+          xpToNextLevel={xpToNext}
         />
         {combatMode && pendingEvalKey && (
           <div className={styles.combatZone}>
