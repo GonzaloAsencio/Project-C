@@ -15,36 +15,57 @@ const STATUS_EMOJI: Record<EvaluationStatus, string> = {
 }
 
 const STATUS_BG: Record<EvaluationStatus, string> = {
-  Victory: "bg-mint/20 border-mint/40",
-  Defeat:  "bg-red-400/20 border-red-400/40",
-  Pending: "bg-indigo/10 border-indigo/30",
+  Victory: "bg-background/80",
+  Defeat:  "bg-background/80",
+  Pending: "bg-background/60",
 }
 
-const STATUS_GLOW: Record<EvaluationStatus, string> = {
-  Victory: "rgba(74,222,128,0.4)",
-  Defeat:  "rgba(248,113,113,0.4)",
-  Pending: "rgba(79,70,229,0.3)",
-}
 
-const TYPE_BADGE: Record<string, string> = {
-  tp1: "TP", tp2: "TP", parcial1: "P", parcial2: "P",
-}
-
-const TYPE_BADGE_COLOR: Record<string, string> = {
-  tp1: "bg-indigo/90 text-white", tp2: "bg-indigo/90 text-white",
-  parcial1: "bg-gold/90 text-gold-dark", parcial2: "bg-gold/90 text-gold-dark",
-}
-
-function MetallicRing({ status }: { status: EvaluationStatus }) {
-  const strokeColor = status === "Victory" ? "var(--mint)" : status === "Defeat" ? "#f87171" : "var(--indigo)"
+function MetallicRing() {
   return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" fill="none">
-      <circle cx="50" cy="50" r="48" stroke={strokeColor} strokeWidth="1.5" strokeOpacity="0.6" fill="none" />
-      <circle cx="50" cy="50" r="44" stroke={strokeColor} strokeWidth="0.75" strokeOpacity="0.3" fill="none" />
-      <path d="M50 4 L50 10 M50 90 L50 96 M4 50 L10 50 M90 50 L96 50"
-        stroke={strokeColor} strokeWidth="1.5" strokeOpacity="0.5" />
-      <path d="M50 2 L52 5 L50 8 L48 5 Z" fill={strokeColor} fillOpacity="0.6" />
-      <path d="M50 92 L52 95 L50 98 L48 95 Z" fill={strokeColor} fillOpacity="0.6" />
+    <svg
+      className="absolute pointer-events-none"
+      style={{ inset: "-14%", width: "128%", height: "128%" }}
+      viewBox="-10 -10 120 120"
+      fill="none"
+    >
+      <defs>
+        <linearGradient id="goldRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stopColor="#c8952a" stopOpacity="0.95" />
+          <stop offset="30%"  stopColor="#f5d98e" stopOpacity="0.75" />
+          <stop offset="50%"  stopColor="#d4a843" stopOpacity="1"    />
+          <stop offset="70%"  stopColor="#f0cc7a" stopOpacity="0.75" />
+          <stop offset="100%" stopColor="#c8952a" stopOpacity="0.95" />
+        </linearGradient>
+        <linearGradient id="goldDiamondGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stopColor="#f5d98e" stopOpacity="0.9" />
+          <stop offset="50%"  stopColor="#d4a843" stopOpacity="1"   />
+          <stop offset="100%" stopColor="#9a6c1a" stopOpacity="0.8" />
+        </linearGradient>
+      </defs>
+
+      {/* Outer ring */}
+      <circle cx="50" cy="50" r="46" stroke="url(#goldRingGradient)" strokeWidth="1.8" fill="none" />
+      {/* Inner ring */}
+      <circle cx="50" cy="50" r="41" stroke="#d4a843" strokeWidth="0.6" strokeOpacity="0.35" fill="none" />
+
+      {/* Cardinal elongated diamonds — appear on hover */}
+      <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        {/* Top */}
+        <path d="M50 -8 L53  8 L50 18 L47  8 Z" fill="url(#goldDiamondGrad)" />
+        {/* Bottom */}
+        <path d="M50 82 L53 92 L50 108 L47 92 Z" fill="url(#goldDiamondGrad)" />
+        {/* Left */}
+        <path d="M-8 50 L8 47 L18 50 L8 53 Z" fill="url(#goldDiamondGrad)" />
+        {/* Right */}
+        <path d="M82 50 L92 47 L108 50 L92 53 Z" fill="url(#goldDiamondGrad)" />
+      </g>
+
+      {/* Small accent dots at 45° positions */}
+      <circle cx="82" cy="18" r="2" fill="#d4a843" fillOpacity="0.55" />
+      <circle cx="18" cy="18" r="2" fill="#d4a843" fillOpacity="0.55" />
+      <circle cx="82" cy="82" r="2" fill="#d4a843" fillOpacity="0.55" />
+      <circle cx="18" cy="82" r="2" fill="#d4a843" fillOpacity="0.55" />
     </svg>
   )
 }
@@ -65,42 +86,28 @@ export default function EvalMissionSelector({ grades, isDungeon }: EvalMissionSe
 
           return (
             <div key={key} className="relative flex flex-col items-center">
-              {/* Glow aura */}
-              {status === "Victory" && (
-                <div
-                  className="absolute inset-0 w-20 h-20 rounded-full"
-                  style={{
-                    background: `radial-gradient(circle, ${STATUS_GLOW[status]} 0%, transparent 70%)`,
-                    opacity: 0.4,
-                    filter: "blur(10px)",
-                    transform: "scale(1.4)",
-                  }}
-                />
-              )}
-
               {/* Avatar circle */}
-              <div className={cn("relative w-20 h-20 rounded-full", STATUS_BG[status], "border-2 flex items-center justify-center text-3xl")}>
-                <MetallicRing status={status} />
+              <div className={cn(
+                "group relative w-20 h-20 rounded-full border border-transparent flex items-center justify-center text-3xl",
+                STATUS_BG[status]
+              )}>
+                <MetallicRing />
                 <span className="relative z-10">{STATUS_EMOJI[status]}</span>
 
-                {/* Type badge */}
-                <div className={cn(
-                  "absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border",
-                  TYPE_BADGE_COLOR[key]
-                )}>
-                  {TYPE_BADGE[key]}
-                </div>
               </div>
 
               {/* Label */}
-              <span className={cn("text-xs font-semibold mt-2 text-center w-20", isDungeon ? "text-white/70" : "text-muted-foreground")}>
+              <span className={cn(
+                "text-xs font-semibold mt-2 text-center w-20",
+                isDungeon ? "text-white/70" : "text-muted-foreground"
+              )}>
                 {EVAL_LABELS[key]}
               </span>
 
               {/* Timeline dot */}
               <div className={cn(
                 "absolute left-1/2 -translate-x-1/2 w-2 h-2 rounded-full top-1/2 -translate-y-1/2 z-[-1]",
-                status === "Victory" ? "bg-mint" : "bg-border"
+                status === "Victory" ? "bg-gold/60" : "bg-border"
               )} />
             </div>
           )
