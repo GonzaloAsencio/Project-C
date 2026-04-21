@@ -39,18 +39,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   position: sticky;
   top: 0;
   z-index: 50;
 }
 
-.navbarDungeon {
-  background: rgba(13, 13, 26, 0.9);
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
+.navbarDungeon {}
 
 .navbarBrand {
   font-size: 1rem;

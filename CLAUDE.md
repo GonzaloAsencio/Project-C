@@ -49,7 +49,7 @@ Attendance XP (+20) bypasses the outbox — `AttendanceService.markPresent()` ca
 | `attendance/{classId}` | `date`, `createdBy`, `presentStudents[]` |
 | `outbox/{id}` | `type`, `payload`, `status` (`"pending"` \| `"processed"`), `createdAt` |
 
-Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parcial2`.
+Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parcial2`. `AvatarClass` values: `"Sword"` | `"Axe"` | `"Dagger"` | `"Bow"` | `"Magic"` (each has an RPG subtitle displayed in `ProfileCard`).
 
 `evalId` format: `"{studentUid}_{tp|parcial}{index}"` (e.g. `"abc123_tp1"`). `UpdateGrade.parseEvalId()` decodes this.
 
@@ -71,12 +71,14 @@ Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parci
 
 ### Data-fetching hooks
 
-- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) to trigger overlay animations and canvas-confetti. Fills missing `gradesSummary` keys with `{ status: "Pending", score: 0 }` defaults so the UI always has all four eval slots.
+- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) to trigger overlay animations and canvas-confetti. Fills missing `gradesSummary` keys with `{ status: "Pending", score: 0 }` defaults so the UI always has all four eval slots. Also exports `EVAL_KEYS` (`["tp1","tp2","parcial1","parcial2"]`), `EVAL_LABELS`, `GradeEntry`, and `UserDocument` — import these from `useStudentData` rather than redefining them in other components.
 - **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`.
 
-### combatMode
+### combatMode / isDungeon
 
-`GetStudentDashboard.execute()` returns `combatMode: true` when any evaluation has `status === "Pending"`. This flag switches the student UI to a combat/RPG theme (enemy sprite visible, different layout).
+`GetStudentDashboard.execute()` returns `combatMode: true` when any evaluation has `status === "Pending"`. In practice, `StudentPanel` ignores this and recomputes the flag client-side: `EVAL_KEYS.some((k) => grades[k]?.status === "Pending")`.
+
+UI components (`EvalList`, `EvalMissionSelector`) receive the theme as an `isDungeon: boolean` prop — the same concept, different name at the presentation layer. When `isDungeon` is true the student sees a dark dungeon theme; when false, a light parchment theme.
 
 ### Shared utilities
 
