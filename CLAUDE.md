@@ -27,7 +27,7 @@ The `src/` directory is split into three bounded contexts plus shared infrastruc
 - **`identity/`** — Auth (Firebase Auth adapter), user domain model (`User`, `AvatarClass`), login use case, `AuthUI` (login form), `StudentPanel` (student dashboard)
 - **`academic/`** — `Evaluation` domain entity, `ApproveEvaluation` use case, `UpdateGrade` use case, `AttendanceService`, `TeacherPanel`, `FirestoreEvalRepo`
 - **`gamification/`** — `PlayerProgress` domain entity (XP/level logic), `AddXP` use case (subscribes to `EvaluationApproved` event), `FirestoreProgressRepo`, `XPBar` component
-- **`shared/`** — `firebase.ts` (Firestore/Auth init), `AuthContext`, `EventBus`, `OutboxService`, `RouteGuard`, `services.ts` (singleton instances)
+- **`shared/`** — `firebase.ts` (Firestore/Auth init), `AuthContext`, `EventBus`, `OutboxService`, `RouteGuard`, `services.ts` (singleton instances), `ErrorBoundary` (class component wrapping both panels), `LoadingScreen` (Suspense fallback), `useLogout` (signs out + redirects to `/login`)
 
 ### Event-driven XP flow (Outbox pattern)
 
@@ -45,7 +45,7 @@ Attendance XP (+20) bypasses the outbox — `AttendanceService.markPresent()` ca
 | Collection | Key fields |
 |---|---|
 | `users/{uid}` | `role`, `displayName`, `email`, `avatarClass`, `xp`, `level`, `xpToNextLevel`, `gradesSummary`, `processedEvalIds` |
-| `evaluations/{evalId}` | `studentUid`, `type` (`"TP"` \| `"Parcial"`), `index`, `status` (`"Victory"` \| `"Defeat"` \| `"Pending"`), `score` |
+| `evaluations/{evalId}` | `studentUid`, `type` (`"TP"` \| `"Parcial"`), `index`, `status` (`"Victory"` \| `"Defeat"` \| `"Pending"` \| `"Waiting"`), `score` |
 | `attendance/{classId}` | `date`, `createdBy`, `presentStudents[]` |
 | `outbox/{id}` | `type`, `payload`, `status` (`"pending"` \| `"processed"`), `createdAt` |
 
@@ -74,7 +74,7 @@ A fifth collection `config/evalColumns` stores the active column definitions: `{
 ### Data-fetching hooks
 
 - **`useEvalColumns`** (`shared/`) — `onSnapshot` subscription to `config/evalColumns`. Returns `{ columns: EvalColumn[], loading }`. Falls back to `DEFAULT_COLUMNS` if the document doesn't exist. Used by both teacher and student views — always import `EvalColumn` and column data from here.
-- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) to trigger overlay animations and canvas-confetti. Internally calls `useEvalColumns` and fills missing `gradesSummary` keys with `{ status: "Pending", score: 0 }` defaults. Exposes `columns: EvalColumn[]` in its return value so consumers don't need to call `useEvalColumns` separately. Exports `GradeEntry` and `UserDocument`.
+- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) to trigger overlay animations and canvas-confetti. Returns `overlay: { type: "victory" | "defeat"; label: string } | null` and `victoryAnim: boolean` for animation state. Internally calls `useEvalColumns` and fills missing `gradesSummary` keys with `{ status: "Pending", score: 0 }` defaults. Exposes `columns: EvalColumn[]` in its return value so consumers don't need to call `useEvalColumns` separately. Exports `GradeEntry` and `UserDocument`.
 - **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`.
 
 ### combatMode / isDungeon
@@ -82,6 +82,8 @@ A fifth collection `config/evalColumns` stores the active column definitions: `{
 `GetStudentDashboard.execute()` returns `combatMode: true` when any evaluation has `status === "Pending"`. In practice, `StudentPanel` ignores this and recomputes the flag client-side using the live `columns` from `useStudentData`: `columns.some((c) => grades[c.key]?.status === "Pending")`.
 
 UI components (`EvalList`, `EvalMissionSelector`) receive both `columns: EvalColumn[]` and `isDungeon: boolean` as props. `isDungeon` is the presentation-layer name for `combatMode`. When true the student sees a dark dungeon theme; when false, a light parchment theme.
+
+`"Waiting"` status means the evaluation has not been administered yet (locked). It renders with a 🔒 icon and desaturated styling. It does not contribute to `isDungeon` — only `"Pending"` triggers combat mode.
 
 ### Grade cell auto-status
 
@@ -95,9 +97,13 @@ UI components (`EvalList`, `EvalMissionSelector`) receive both `columns: EvalCol
 
 `src/shared/services.ts` exports pre-wired singleton instances (`outboxService`, `attendanceService`). Import from there — don't instantiate these classes directly in components.
 
+### App initialization (main.tsx)
+
+`main.tsx` wires the app at startup (module scope, not inside a component): registers the `AddXP` handler on `EventBus`, and attaches an `online` event listener that calls `outboxService.processAll()` to drain any outbox entries missed while offline. Both registrations happen once per page load.
+
 ### Routing & auth
 
-`RouteGuard` reads `user.role` from `AuthContext` and redirects if the role doesn't match. Roles: `"student"` → `/student`, `"teacher"` → `/teacher`.
+`RouteGuard` reads `user.role` from `AuthContext` and redirects if the role doesn't match. Roles: `"student"` → `/student`, `"teacher"` → `/teacher`. Both panel routes are wrapped in `ErrorBoundary` and lazy-loaded with `LoadingScreen` as the Suspense fallback.
 
 ### Styling
 
