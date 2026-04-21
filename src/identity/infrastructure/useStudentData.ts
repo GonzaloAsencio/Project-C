@@ -100,7 +100,7 @@ export function useStudentData(): StudentDataResult {
   const rawGrades = userData?.gradesSummary ?? {}
   const grades: Record<string, GradeEntry> =
     Object.keys(rawGrades).length === 0
-      ? Object.fromEntries(columns.map((c) => [c.key, { status: "Pending" as EvaluationStatus, score: 0 }]))
+      ? Object.fromEntries(columns.map((c) => [c.key, { status: "Waiting" as EvaluationStatus, score: 0 }]))
       : rawGrades
 
   return { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError }

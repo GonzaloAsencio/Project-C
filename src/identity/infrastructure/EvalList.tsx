@@ -1,4 +1,4 @@
-import { Trophy, Skull, Sword } from "lucide-react"
+import { Trophy, Skull, Sword, Clock } from "lucide-react"
 import { cn } from "../../shared/cn"
 import type { GradeEntry } from "./useStudentData"
 import type { EvalColumn } from "../../shared/useEvalColumns"
@@ -12,14 +12,16 @@ interface EvalListProps {
 
 const STATUS_ICON: Record<EvaluationStatus, React.ElementType> = {
   Victory: Trophy,
-  Defeat: Skull,
+  Defeat:  Skull,
   Pending: Sword,
+  Waiting: Clock,
 }
 
 const STATUS_LABEL: Record<EvaluationStatus, string> = {
   Victory: "Victoria",
   Defeat:  "Derrota",
   Pending: "Pendiente",
+  Waiting: "Sin rendir",
 }
 
 const STATUS_ICON_COLORS: Record<EvaluationStatus, { ring: string; icon: string; badge: string; label: string }> = {
@@ -40,6 +42,12 @@ const STATUS_ICON_COLORS: Record<EvaluationStatus, { ring: string; icon: string;
     icon:  "text-indigo bg-indigo/10",
     badge: "bg-indigo/10 text-indigo/70 border border-indigo/20",
     label: "text-indigo/50",
+  },
+  Waiting: {
+    ring:  "shadow-[0_0_0_2px_#cbd5e1,0_0_0_4px_#cbd5e110]",
+    icon:  "text-slate-400/60 bg-slate-200/30",
+    badge: "bg-slate-100/60 text-slate-400 border border-slate-300/40",
+    label: "text-slate-400/40",
   },
 }
 
@@ -113,7 +121,7 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
 
               {/* Score / status badge */}
               <div className={cn("px-3 py-1 rounded-full shrink-0 text-xs font-semibold tabular-nums", colors.badge)}>
-                {status !== "Pending" && entry
+                {status !== "Pending" && status !== "Waiting" && entry
                   ? `${entry.score} / 10`
                   : STATUS_LABEL[status]}
               </div>

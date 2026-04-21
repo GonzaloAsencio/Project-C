@@ -9,7 +9,7 @@ import { useAuth } from "../../shared/AuthContext"
 import type { EvaluationStatus } from "../domain/Evaluation"
 import { useTeacherData } from "./useTeacherData"
 import type { StudentDocument } from "./useTeacherData"
-import { useEvalColumns, DEFAULT_COLUMNS } from "../../shared/useEvalColumns"
+import { useEvalColumns } from "../../shared/useEvalColumns"
 import type { EvalColumn } from "../../shared/useEvalColumns"
 import StudentRow from "./StudentRow"
 import AttendanceSession from "./AttendanceSession"
@@ -99,11 +99,10 @@ export default function TeacherPanel() {
 
   async function handleAddColumn() {
     if (!newColLabel.trim()) return
-    const existing = columns.length > 0 ? columns : DEFAULT_COLUMNS
-    const nextIndex = Math.max(0, ...existing.filter(c => c.type === newColType).map(c => c.index)) + 1
+    const nextIndex = Math.max(0, ...columns.filter(c => c.type === newColType).map(c => c.index)) + 1
     const key = `${newColType === "TP" ? "tp" : "parcial"}${nextIndex}`
     const newCol: EvalColumn = { key, label: newColLabel.trim(), type: newColType, index: nextIndex }
-    await setDoc(CONFIG_DOC, { columns: [...existing, newCol] })
+    await setDoc(CONFIG_DOC, { columns: [...columns, newCol] })
     setNewColLabel("")
     setNewColType("TP")
     setShowAddForm(false)

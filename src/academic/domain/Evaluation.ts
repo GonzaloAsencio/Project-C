@@ -1,6 +1,6 @@
 import { EvaluationApprovedEvent } from "./events"
 
-export type EvaluationStatus = "Victory" | "Defeat" | "Pending"
+export type EvaluationStatus = "Victory" | "Defeat" | "Pending" | "Waiting"
 
 export class Evaluation {
   constructor(

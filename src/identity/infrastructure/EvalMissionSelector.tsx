@@ -13,12 +13,14 @@ const STATUS_EMOJI: Record<EvaluationStatus, string> = {
   Victory: "🏆",
   Defeat:  "💀",
   Pending: "⚔️",
+  Waiting: "🔒",
 }
 
 const STATUS_BG: Record<EvaluationStatus, string> = {
   Victory: "bg-background/80",
   Defeat:  "bg-background/80",
   Pending: "bg-background/60",
+  Waiting: "bg-background/40",
 }
 
 

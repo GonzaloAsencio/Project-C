@@ -3,14 +3,15 @@ import type { EvaluationStatus } from "../domain/Evaluation"
 import type { GradeEntry } from "./useTeacherData"
 import styles from "./TeacherPanel.module.css"
 
-const STATUS_OPTIONS: EvaluationStatus[] = ["Pending", "Victory", "Defeat"]
+const STATUS_OPTIONS: EvaluationStatus[] = ["Waiting", "Pending", "Victory", "Defeat"]
 const STATUS_LABELS: Record<EvaluationStatus, string> = {
-  Victory: "Victoria", Defeat: "Derrota", Pending: "Pendiente",
+  Victory: "Victoria", Defeat: "Derrota", Pending: "Pendiente", Waiting: "Sin rendir",
 }
 const STATUS_COLORS: Record<EvaluationStatus, { bg: string; text: string }> = {
   Victory: { bg: "#dcfce7", text: "#15803d" },
   Defeat:  { bg: "#fee2e2", text: "#b91c1c" },
   Pending: { bg: "#fef9c3", text: "#854d0e" },
+  Waiting: { bg: "#f1f5f9", text: "#64748b" },
 }
 
 export interface CellState {
@@ -31,7 +32,7 @@ interface GradeCellProps {
 export default function GradeCell({ studentUid, evalKey, entry, cellState, onCellChange }: GradeCellProps) {
   const saving = cellState?.saving ?? false
   const error = cellState?.error ?? false
-  const committedStatus: EvaluationStatus = entry?.status ?? "Pending"
+  const committedStatus: EvaluationStatus = entry?.status ?? "Waiting"
   const committedScore = entry?.score ?? 0
   const [localScore, setLocalScore] = useState(committedScore)
   const prevScore = useRef(committedScore)
