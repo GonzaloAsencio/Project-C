@@ -2,35 +2,45 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isTeacher() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
+    }
+
     // evaluations: teachers can read/write; students can only read their own
     match /evaluations/{evalId} {
       allow read: if request.auth != null
         && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher"
+          isTeacher()
           || resource.data.studentUid == request.auth.uid
         );
       allow create: if request.auth != null
         && (
           request.resource.data.studentUid == request.auth.uid
-          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher"
+          || isTeacher()
         );
-      allow update, delete: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
+      allow update, delete: if request.auth != null && isTeacher();
     }
 
     // users: teachers can read/write all; students can only read their own document
     match /users/{uid} {
-      // A user can always read their own document (avoids deadlock when doc doesn't exist yet)
       allow read: if request.auth != null
         && (
           request.auth.uid == uid
-          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher"
+          || isTeacher()
         );
-      // A user can create their own document (registration flow)
       allow create: if request.auth != null && request.auth.uid == uid;
-      // Only teachers can update/delete user documents
-      allow update, delete: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
+      // Teachers can update/delete any user doc.
+      // Students can update only XP-related fields on their own doc (needed for attendance self-registration).
+      allow update: if request.auth != null
+        && (
+          isTeacher()
+          || (
+            request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['xp', 'level', 'xpToNextLevel', 'processedEvalIds'])
+          )
+        );
+      allow delete: if request.auth != null && isTeacher();
     }
 
     // outbox: authenticated users can read/write (system events)
@@ -41,22 +51,34 @@ service cloud.firestore {
     // config: teachers can read/write; any authenticated user can read
     match /config/{docId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
+      allow write: if request.auth != null && isTeacher();
     }
 
-    // attendance: teachers can create/update sessions; students can read their own records
+    // attendance: teachers can manage sessions; students can self-register within the configured window
     match /attendance/{classId} {
       allow read: if request.auth != null
         && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher"
+          isTeacher()
           || resource.data.presentStudents.hasAny([request.auth.uid])
+          || resource.data.selfRegistration == true
         );
-      allow create: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
+      allow create: if request.auth != null && isTeacher();
       allow update: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
-      allow delete: if false;
+        && (
+          isTeacher()
+          || (
+            // Student may only add their own UID to presentStudents within the configured window
+            resource.data.selfRegistration == true
+            && request.time >= resource.data.windowStart
+            && request.time <= resource.data.windowEnd
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['presentStudents'])
+            && request.resource.data.presentStudents.hasAll(resource.data.presentStudents)
+            && request.resource.data.presentStudents
+                .removeAll(resource.data.presentStudents)
+                .hasOnly([request.auth.uid])
+          )
+        );
+      allow delete: if request.auth != null && isTeacher();
     }
   }
 }

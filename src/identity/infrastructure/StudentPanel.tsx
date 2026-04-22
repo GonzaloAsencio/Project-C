@@ -10,6 +10,7 @@ import EvalList from "./EvalList"
 import EvalMissionSelector from "./EvalMissionSelector"
 import { AtmosphericBackground } from "./AtmosphericBackground"
 import { useStudentData } from "./useStudentData"
+import AttendanceRegistration from "./AttendanceRegistration"
 import styles from "./StudentPanel.module.css"
 
 interface EvaluationApprovedPayload { evalId: string; studentUid: string; xpReward: number }
@@ -117,6 +118,7 @@ export default function StudentPanel() {
             currentXP={userData.xp}
             xpToNextLevel={xpToNext}
           />
+          <AttendanceRegistration />
           <div className="flex-1 overflow-auto">
             <EvalList grades={grades} columns={columns} isDungeon={combatMode} />
           </div>
@@ -132,6 +134,7 @@ export default function StudentPanel() {
           currentXP={userData.xp}
           xpToNextLevel={xpToNext}
         />
+        <AttendanceRegistration />
         {combatMode && pendingEvalKey && (
           <div className={styles.combatZone}>
             <span className={styles.combatTitle}>⚔ Modo Combate Activo</span>

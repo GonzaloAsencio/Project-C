@@ -25,6 +25,7 @@ const updateGradeUC = new UpdateGrade(outboxService)
 type ConfirmAction =
   | { type: "bulk-reset"; col: EvalColumn }
   | { type: "delete-col"; col: EvalColumn }
+  | { type: "delete-session"; sessionId: string; dateLabel: string }
 
 export default function TeacherPanel() {
   const { user } = useAuth()
@@ -50,6 +51,13 @@ export default function TeacherPanel() {
   const [activeTab, setActiveTab] = useState<"grades" | "attendance">("grades")
   const [detailStudent, setDetailStudent] = useState<StudentDocument | null>(null)
 
+  // Session creation form
+  const [showSessionForm, setShowSessionForm] = useState(false)
+  const [newSessionDate, setNewSessionDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [newSessionSelfReg, setNewSessionSelfReg] = useState(false)
+  const [newSessionWinStart, setNewSessionWinStart] = useState("08:00")
+  const [newSessionWinEnd, setNewSessionWinEnd] = useState("10:00")
+
   // Column management state
   const [showAddForm, setShowAddForm] = useState(false)
   const [newColLabel, setNewColLabel] = useState("")
@@ -63,10 +71,39 @@ export default function TeacherPanel() {
     if (!user) return
     setCreatingSession(true)
     try {
-      await attendanceService.createSession(user.uid)
+      const sessionDate = new Date(`${newSessionDate}T12:00:00`)
+      const ws = newSessionSelfReg ? new Date(`${newSessionDate}T${newSessionWinStart}:00`) : undefined
+      const we = newSessionSelfReg ? new Date(`${newSessionDate}T${newSessionWinEnd}:00`) : undefined
+      await attendanceService.createSession(user.uid, sessionDate, newSessionSelfReg, ws, we)
+      setShowSessionForm(false)
     } finally {
       setCreatingSession(false)
     }
+  }
+
+  async function handleMarkAll(classId: string) {
+    const key = `markAll_${classId}`
+    setCheckStates((p) => ({ ...p, [key]: true }))
+    try {
+      await attendanceService.markAllPresent(classId, students.map((s) => s.uid))
+    } finally {
+      setCheckStates((p) => ({ ...p, [key]: false }))
+    }
+  }
+
+  async function handleClearAll(classId: string) {
+    const key = `clearAll_${classId}`
+    setCheckStates((p) => ({ ...p, [key]: true }))
+    try {
+      await attendanceService.clearAllPresent(classId)
+    } finally {
+      setCheckStates((p) => ({ ...p, [key]: false }))
+    }
+  }
+
+  async function handleDeleteSession(sessionId: string) {
+    await attendanceService.deleteSession(sessionId)
+    setConfirmAction(null)
   }
 
   async function handleToggleAttendance(classId: string, studentUid: string, isPresent: boolean) {
@@ -150,6 +187,7 @@ export default function TeacherPanel() {
     if (!confirmAction) return
     if (confirmAction.type === "bulk-reset") await handleBulkReset(confirmAction.col)
     if (confirmAction.type === "delete-col") await handleDeleteColumn(confirmAction.col)
+    if (confirmAction.type === "delete-session") await handleDeleteSession(confirmAction.sessionId)
   }
 
   if (loading) return (
@@ -166,13 +204,18 @@ export default function TeacherPanel() {
         <div className={styles.confirmBackdrop}>
           <div className={styles.confirmBox}>
             <p className={styles.confirmTitle}>
-              {confirmAction.type === "bulk-reset" ? "¿Marcar todos como Pendiente?" : "¿Eliminar columna?"}
+              {confirmAction.type === "bulk-reset"
+                ? "¿Marcar todos como Pendiente?"
+                : confirmAction.type === "delete-col"
+                  ? "¿Eliminar columna?"
+                  : "¿Eliminar sesión?"}
             </p>
             <p className={styles.confirmMsg}>
               {confirmAction.type === "bulk-reset"
                 ? `Se resetearán las notas de ${students.length} alumno(s) en "${confirmAction.col.label}". Esta acción no revierte el XP ya otorgado.`
-                : `Se eliminará la columna "${confirmAction.col.label}" y sus datos en todos los alumnos cargados.`}
-              {hasMore && " Hay alumnos en páginas no cargadas que no serán afectados."}
+                : confirmAction.type === "delete-col"
+                  ? `Se eliminará la columna "${confirmAction.col.label}" y sus datos en todos los alumnos cargados.${hasMore ? " Hay alumnos en páginas no cargadas que no serán afectados." : ""}`
+                  : `Se eliminará la sesión del ${confirmAction.dateLabel}. El XP ya otorgado no se revertirá.`}
             </p>
             <div className={styles.confirmActions}>
               <button className={styles.confirmCancel} onClick={() => setConfirmAction(null)}>Cancelar</button>
@@ -384,12 +427,63 @@ export default function TeacherPanel() {
               <span className={styles.attTitle}>📅 Historial de clases</span>
               <button
                 className={styles.newClassBtn}
-                disabled={creatingSession}
-                onClick={handleCreateSession}
+                onClick={() => setShowSessionForm((v) => !v)}
               >
-                {creatingSession ? "⏳ Creando…" : "➕ Nueva clase"}
+                {showSessionForm ? "✕ Cancelar" : "➕ Nueva clase"}
               </button>
             </div>
+
+            {showSessionForm && (
+              <div className={styles.sessionForm}>
+                <div className={styles.sessionFormRow}>
+                  <label className={styles.sessionFormLabel}>Fecha</label>
+                  <input
+                    type="date"
+                    className={styles.sessionFormInput}
+                    value={newSessionDate}
+                    onChange={(e) => setNewSessionDate(e.target.value)}
+                  />
+                </div>
+                <div className={styles.sessionFormRow}>
+                  <label className={styles.sessionFormLabel}>
+                    <input
+                      type="checkbox"
+                      checked={newSessionSelfReg}
+                      onChange={(e) => setNewSessionSelfReg(e.target.checked)}
+                      style={{ marginRight: "0.4rem" }}
+                    />
+                    Auto-registro de alumnos
+                  </label>
+                </div>
+                {newSessionSelfReg && (
+                  <div className={styles.sessionFormRow}>
+                    <label className={styles.sessionFormLabel}>Ventana horaria</label>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                      <input
+                        type="time"
+                        className={styles.sessionFormInput}
+                        value={newSessionWinStart}
+                        onChange={(e) => setNewSessionWinStart(e.target.value)}
+                      />
+                      <span style={{ color: "#64748b", fontSize: "0.85rem" }}>→</span>
+                      <input
+                        type="time"
+                        className={styles.sessionFormInput}
+                        value={newSessionWinEnd}
+                        onChange={(e) => setNewSessionWinEnd(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+                <button
+                  className={styles.newClassBtn}
+                  disabled={creatingSession}
+                  onClick={handleCreateSession}
+                >
+                  {creatingSession ? "⏳ Creando…" : "Crear sesión"}
+                </button>
+              </div>
+            )}
 
             {sessions.length === 0 ? (
               <div className={styles.noSessions}>
@@ -403,6 +497,11 @@ export default function TeacherPanel() {
                   students={students}
                   checkStates={checkStates}
                   onToggle={handleToggleAttendance}
+                  onMarkAll={handleMarkAll}
+                  onClearAll={handleClearAll}
+                  onDelete={(sessionId, dateLabel) =>
+                    setConfirmAction({ type: "delete-session", sessionId, dateLabel })
+                  }
                 />
               ))
             )}

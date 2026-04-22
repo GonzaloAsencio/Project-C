@@ -38,7 +38,7 @@ When a teacher approves an evaluation:
 4. `AddXP` listens on `EventBus` for `EvaluationApproved` and calls `FirestoreProgressRepo.addXPIdempotent()`
 5. Idempotency is enforced via `processedEvalIds[]` on the user document (Firestore transaction)
 
-Attendance XP (+20) bypasses the outbox — `AttendanceService.markPresent()` calls `addXPIdempotent` directly with `evalId = "{classId}_{studentUid}"`.
+Attendance XP (+20) bypasses the outbox — `AttendanceService.markPresent()` (teacher) and `markSelfPresent()` (student self-registration) both call `addXPIdempotent` directly with `evalId = "{classId}_{studentUid}"`. XP is never reverted when unmarking, clearing, or deleting a session — idempotency via `processedEvalIds` prevents double-awarding if re-marked.
 
 ### Firestore data model
 
@@ -46,7 +46,7 @@ Attendance XP (+20) bypasses the outbox — `AttendanceService.markPresent()` ca
 |---|---|
 | `users/{uid}` | `role`, `displayName`, `email`, `avatarClass`, `xp`, `level`, `xpToNextLevel`, `gradesSummary`, `processedEvalIds` |
 | `evaluations/{evalId}` | `studentUid`, `type` (`"TP"` \| `"Parcial"`), `index`, `status` (`"Victory"` \| `"Defeat"` \| `"Pending"` \| `"Waiting"`), `score` |
-| `attendance/{classId}` | `date`, `createdBy`, `presentStudents[]` |
+| `attendance/{classId}` | `date`, `createdBy`, `presentStudents[]`, `selfRegistration` (bool), `windowStart?` (Timestamp), `windowEnd?` (Timestamp) |
 | `outbox/{id}` | `type`, `payload`, `status` (`"pending"` \| `"processed"`), `createdAt` |
 
 Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parcial2` (dynamically extensible — see `useEvalColumns`). `AvatarClass` values: `"Sword"` | `"Axe"` | `"Dagger"` | `"Bow"` | `"Magic"` (each has an RPG subtitle displayed in `ProfileCard`).
@@ -76,6 +76,7 @@ A fifth collection `config/evalColumns` stores the active column definitions: `{
 - **`useEvalColumns`** (`shared/`) — `onSnapshot` subscription to `config/evalColumns`. Returns `{ columns: EvalColumn[], loading }`. Falls back to `DEFAULT_COLUMNS` if the document doesn't exist. Used by both teacher and student views — always import `EvalColumn` and column data from here.
 - **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) to trigger overlay animations and canvas-confetti. Returns `overlay: { type: "victory" | "defeat"; label: string } | null` and `victoryAnim: boolean` for animation state. Internally calls `useEvalColumns` and fills missing `gradesSummary` keys with `{ status: "Pending", score: 0 }` defaults. Exposes `columns: EvalColumn[]` in its return value so consumers don't need to call `useEvalColumns` separately. Exports `GradeEntry` and `UserDocument`.
 - **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`.
+- **`useActiveAttendanceSession`** (`identity/infrastructure/`) — subscribes to attendance docs with `selfRegistration == true` and filters client-side for today's date. Returns `{ session: ClassSession | null, isWithinWindow: boolean }`. The query **must** filter by `selfRegistration == true` (not by date range) — a date-range-only query gets rejected by Firestore security rules because it could return docs the student can't read.
 
 ### combatMode / isDungeon
 
@@ -92,6 +93,22 @@ UI components (`EvalList`, `EvalMissionSelector`) receive both `columns: EvalCol
 ### Shared utilities
 
 `src/shared/cn.ts` — thin wrapper around `clsx` for conditional CSS Module class composition.
+
+### Attendance module
+
+`AttendanceService` (`academic/application/`) supports:
+- Teacher: `createSession(teacherUid, date, selfRegistration?, windowStart?, windowEnd?)`, `markPresent/markAbsent`, `markAllPresent`, `clearAllPresent`, `deleteSession`
+- Student: `markSelfPresent` (uses `arrayUnion` — no read-before-write needed)
+
+Sessions with `selfRegistration: true` display `AttendanceRegistration` in `StudentPanel` — a self-contained component that uses `useActiveAttendanceSession` internally and renders nothing when outside the time window.
+
+`windowStart` / `windowEnd` are full datetimes (date + time combined), stored as Firestore Timestamps. Firestore security rules enforce the window server-side on student updates.
+
+### Firestore security rules gotcha
+
+Firestore rejects a student's list query if it could hypothetically return a document the student can't read. Concretely: a query filtered only by date range on `attendance/` fails because it might return docs with `selfRegistration: false`. Always add `where("selfRegistration", "==", true)` to any student-facing attendance query so Firestore can prove all returned docs are readable.
+
+Students can update only `xp`, `level`, `xpToNextLevel`, `processedEvalIds` on their own `users/{uid}` doc (needed for self-registration XP). The rule enforces this via `affectedKeys().hasOnly([...])`.
 
 ### Singleton services
 

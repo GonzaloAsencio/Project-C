@@ -409,13 +409,13 @@
 .sessionDate { color: #1e293b; font-size: 0.95rem; }
 
 .sessionCount {
-  margin-left: auto;
   background: #e0e7ff;
   color: #4338ca;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .attGrid {
@@ -459,6 +459,72 @@
 .attXp   { font-size: 0.72rem; color: #10b981; font-weight: 700; margin-left: auto; }
 
 .noSessions { padding: 3rem 2rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+
+/* Session creation form */
+.sessionForm {
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid #f1f5f9;
+  background: #fafbff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sessionFormRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sessionFormLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  min-width: 130px;
+}
+
+.sessionFormInput {
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1e293b;
+  background: #fff;
+}
+
+.sessionFormInput:focus { outline: none; border-color: #a855f7; }
+
+/* Session header badges and actions */
+.sessionSelfRegBadge {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  title: "Auto-registro";
+}
+
+.sessionActions {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.sessionActionBtn {
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sessionActionBtn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+.sessionActionBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sessionActionBtnDanger { color: #ef4444; }
+.sessionActionBtnDanger:hover { background: #fef2f2; border-color: #fca5a5; }
 
 /* ── Search / filter ── */
 .searchWrap {
