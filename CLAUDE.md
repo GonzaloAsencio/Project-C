@@ -100,7 +100,9 @@ UI components (`EvalList`, `EvalMissionSelector`) receive both `columns: EvalCol
 - Teacher: `createSession(teacherUid, date, selfRegistration?, windowStart?, windowEnd?)`, `markPresent/markAbsent`, `markAllPresent`, `clearAllPresent`, `deleteSession`
 - Student: `markSelfPresent` (uses `arrayUnion` — no read-before-write needed)
 
-Sessions with `selfRegistration: true` display `AttendanceRegistration` in `StudentPanel` — a self-contained component that uses `useActiveAttendanceSession` internally and renders nothing when outside the time window.
+Sessions with `selfRegistration: true` display `AttendanceRegistration` in `StudentPanel` — a self-contained component that uses `useActiveAttendanceSession` internally and renders nothing when outside the time window or when there's no active session.
+
+"✓ Todos" in `AttendanceSession` is disabled when `presentCount === students.length` (all already present). "✕ Limpiar" shows a `window.confirm` with "El XP ya otorgado no se revertirá" before executing — confirmation is handled in the component, not in the handler.
 
 `windowStart` / `windowEnd` are full datetimes (date + time combined), stored as Firestore Timestamps. Firestore security rules enforce the window server-side on student updates.
 

@@ -43,7 +43,7 @@ export default function AttendanceSession({
         <div className={styles.sessionActions}>
           <button
             className={styles.sessionActionBtn}
-            disabled={!!isBulkLoading}
+            disabled={!!isBulkLoading || presentCount === students.length}
             onClick={() => onMarkAll(session.id)}
             title="Marcar todos presentes"
           >
@@ -52,7 +52,11 @@ export default function AttendanceSession({
           <button
             className={styles.sessionActionBtn}
             disabled={!!isBulkLoading}
-            onClick={() => onClearAll(session.id)}
+            onClick={() => {
+              if (window.confirm("¿Desmarcar a todos los alumnos?\nEl XP ya otorgado no se revertirá.")) {
+                onClearAll(session.id)
+              }
+            }}
             title="Desmarcar todos"
           >
             ✕ Limpiar
