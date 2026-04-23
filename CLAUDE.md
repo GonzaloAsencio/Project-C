@@ -77,13 +77,15 @@ A fifth collection `config/evalColumns` stores the active column definitions: `{
 ### Data-fetching hooks
 
 - **`useEvalColumns`** (`shared/`) — `onSnapshot` subscription to `config/evalColumns`. Returns `{ columns: EvalColumn[], loading }`. Falls back to `DEFAULT_COLUMNS` if the document doesn't exist. Used by both teacher and student views — always import `EvalColumn` and column data from here.
-- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects XP delta via `prevXpRef` (null-initialized to skip first snapshot) and emits `xpGainEvent: { gain, seq } | null`. Detects level change via `prevLevelRef` (same null pattern) and emits `levelUpEvent: { prevLevel, nextLevel } | null`. Returns `{ userData, grades, columns, snapshotError, xpGainEvent, levelUpEvent }`. Fills missing `gradesSummary` keys with `{ status: "Waiting", score: 0 }` defaults. Exports `GradeEntry` and `UserDocument`.
+- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects XP delta via `prevXpRef` (null-initialized to skip first snapshot) and emits `xpGainEvent: { gain, seq } | null`. Detects level change via `prevLevelRef` (same null pattern) and emits `levelUpEvent: { prevLevel, nextLevel } | null`. Returns `{ userData, grades, columns, snapshotError, xpGainEvent, levelUpEvent }`. When `gradesSummary` is completely empty (not partially filled), fills all columns with `{ status: "Waiting", score: 0 }` defaults — individual missing keys in a non-empty summary are not backfilled. Exports `GradeEntry` and `UserDocument`.
 - **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`.
 - **`useActiveAttendanceSession`** (`identity/infrastructure/`) — subscribes to attendance docs with `selfRegistration == true` and filters client-side for today's date. Returns `{ session: ClassSession | null, isWithinWindow: boolean }`. The query **must** filter by `selfRegistration == true` (not by date range) — a date-range-only query gets rejected by Firestore security rules because it could return docs the student can't read.
 
 ### StudentPanel layout
 
-`StudentPanel` has two responsive layouts: desktop (`lg:` breakpoint, 3-column flex with absolute-positioned side panels) and mobile (single-column stack). Both share the same data from `useStudentData`. `victoryAnim` is local state in `StudentPanel`, set for 3 s when `xpGainEvent` fires — it animates `AvatarDisplay`.
+`StudentPanel` has two responsive layouts: desktop (`lg:` breakpoint, 3-column flex with absolute-positioned side panels) and mobile (single-column stack). Both share the same data from `useStudentData`. `victoryAnim` is local state in `StudentPanel`, set for 3 s when `xpGainEvent` fires — it animates `AvatarDisplay`. `AtmosphericBackground` (`identity/infrastructure/`) is a decorative animated layer rendered behind both layouts.
+
+`EvalMissionSelector` is **desktop-only** — it renders as the left panel in the 3-column desktop layout and is completely absent from the mobile stack. `EvalList` is present in both layouts and is the primary eval view for mobile users.
 
 ### combatMode / isDungeon
 
