@@ -34,6 +34,7 @@ export interface StudentDataResult {
   setVictoryAnim: (v: boolean) => void
   snapshotError: string | null
   xpGainEvent: { gain: number; seq: number } | null
+  levelUpEvent: { prevLevel: number; nextLevel: number } | null
 }
 
 export function useStudentData(): StudentDataResult {
@@ -44,8 +45,10 @@ export function useStudentData(): StudentDataResult {
   const [overlay, setOverlay] = useState<{ type: "victory" | "defeat"; label: string } | null>(null)
   const [snapshotError, setSnapshotError] = useState<string | null>(null)
   const [xpGainEvent, setXpGainEvent] = useState<{ gain: number; seq: number } | null>(null)
+  const [levelUpEvent, setLevelUpEvent] = useState<{ prevLevel: number; nextLevel: number } | null>(null)
   const prevGradesRef = useRef<Record<string, GradeEntry>>({})
   const prevXpRef = useRef<number | null>(null)
+  const prevLevelRef = useRef<number | null>(null)
   const xpSeqRef = useRef(0)
   const reconciling = useRef(false)
 
@@ -84,6 +87,12 @@ export function useStudentData(): StudentDataResult {
           }
           prevXpRef.current = newXp
 
+          const newLevel = newData.level ?? 1
+          if (prevLevelRef.current !== null && newLevel > prevLevelRef.current) {
+            setLevelUpEvent({ prevLevel: prevLevelRef.current, nextLevel: newLevel })
+          }
+          prevLevelRef.current = newLevel
+
           setUserData(newData)
           setSnapshotError(null)
 
@@ -115,5 +124,5 @@ export function useStudentData(): StudentDataResult {
       ? Object.fromEntries(columns.map((c) => [c.key, { status: "Waiting" as EvaluationStatus, score: 0 }]))
       : rawGrades
 
-  return { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError, xpGainEvent }
+  return { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError, xpGainEvent, levelUpEvent }
 }

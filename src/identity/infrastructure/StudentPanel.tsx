@@ -12,6 +12,7 @@ import { AtmosphericBackground } from "./AtmosphericBackground"
 import { useStudentData } from "./useStudentData"
 import AttendanceRegistration from "./AttendanceRegistration"
 import { XPToast } from "../../gamification/infrastructure/XPToast"
+import { LevelUpModal } from "../../gamification/infrastructure/level-up/LevelUpModal"
 import styles from "./StudentPanel.module.css"
 
 interface EvaluationApprovedPayload { evalId: string; studentUid: string; xpReward: number }
@@ -19,8 +20,9 @@ interface EvaluationApprovedPayload { evalId: string; studentUid: string; xpRewa
 export default function StudentPanel() {
   const { user } = useAuth()
   const logout = useLogout()
-  const { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError, xpGainEvent } = useStudentData()
+  const { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError, xpGainEvent, levelUpEvent } = useStudentData()
   const [xpToast, setXpToast] = useState<{ amount: number; key: number } | null>(null)
+  const [levelUpModal, setLevelUpModal] = useState<{ prevLevel: number; nextLevel: number } | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -39,6 +41,11 @@ export default function StudentPanel() {
     if (!xpGainEvent) return
     setXpToast({ amount: xpGainEvent.gain, key: xpGainEvent.seq })
   }, [xpGainEvent])
+
+  useEffect(() => {
+    if (!levelUpEvent) return
+    setLevelUpModal(levelUpEvent)
+  }, [levelUpEvent])
 
   const combatMode = columns.some((c) => grades[c.key]?.status === "Pending")
   const pendingEvalKey = columns.find((c) => grades[c.key]?.status === "Pending")?.key
@@ -131,6 +138,14 @@ export default function StudentPanel() {
           </div>
         </div>
       </div>
+
+      {/* Level-up modal */}
+      <LevelUpModal
+        open={!!levelUpModal}
+        prevLevel={levelUpModal?.prevLevel ?? 1}
+        nextLevel={levelUpModal?.nextLevel ?? 1}
+        onClose={() => setLevelUpModal(null)}
+      />
 
       {/* XP gain toast */}
       {xpToast && (
