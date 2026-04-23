@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import clsx from "clsx"
 import { useAuth } from "../../shared/AuthContext"
 import { eventBus } from "../../shared/EventBus"
@@ -11,6 +11,7 @@ import EvalMissionSelector from "./EvalMissionSelector"
 import { AtmosphericBackground } from "./AtmosphericBackground"
 import { useStudentData } from "./useStudentData"
 import AttendanceRegistration from "./AttendanceRegistration"
+import { XPToast } from "../../gamification/infrastructure/XPToast"
 import styles from "./StudentPanel.module.css"
 
 interface EvaluationApprovedPayload { evalId: string; studentUid: string; xpReward: number }
@@ -18,7 +19,8 @@ interface EvaluationApprovedPayload { evalId: string; studentUid: string; xpRewa
 export default function StudentPanel() {
   const { user } = useAuth()
   const logout = useLogout()
-  const { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError } = useStudentData()
+  const { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError, xpGainEvent } = useStudentData()
+  const [xpToast, setXpToast] = useState<{ amount: number; key: number } | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -32,6 +34,11 @@ export default function StudentPanel() {
     eventBus.on<EvaluationApprovedPayload>("EvaluationApproved", handleEvaluationApproved)
     return () => eventBus.off<EvaluationApprovedPayload>("EvaluationApproved", handleEvaluationApproved)
   }, [user])
+
+  useEffect(() => {
+    if (!xpGainEvent) return
+    setXpToast({ amount: xpGainEvent.gain, key: xpGainEvent.seq })
+  }, [xpGainEvent])
 
   const combatMode = columns.some((c) => grades[c.key]?.status === "Pending")
   const pendingEvalKey = columns.find((c) => grades[c.key]?.status === "Pending")?.key
@@ -124,6 +131,16 @@ export default function StudentPanel() {
           </div>
         </div>
       </div>
+
+      {/* XP gain toast */}
+      {xpToast && (
+        <XPToast
+          key={xpToast.key}
+          gain={xpToast.amount}
+          isDungeon={combatMode}
+          onDismiss={() => setXpToast(null)}
+        />
+      )}
 
       {/* ── Mobile layout (single column) ── */}
       <div className="flex lg:hidden flex-col items-center gap-4 p-4 flex-1 z-10 relative">

@@ -33,6 +33,7 @@ export interface StudentDataResult {
   victoryAnim: boolean
   setVictoryAnim: (v: boolean) => void
   snapshotError: string | null
+  xpGainEvent: { gain: number; seq: number } | null
 }
 
 export function useStudentData(): StudentDataResult {
@@ -42,7 +43,10 @@ export function useStudentData(): StudentDataResult {
   const [victoryAnim, setVictoryAnim] = useState(false)
   const [overlay, setOverlay] = useState<{ type: "victory" | "defeat"; label: string } | null>(null)
   const [snapshotError, setSnapshotError] = useState<string | null>(null)
+  const [xpGainEvent, setXpGainEvent] = useState<{ gain: number; seq: number } | null>(null)
   const prevGradesRef = useRef<Record<string, GradeEntry>>({})
+  const prevXpRef = useRef<number | null>(null)
+  const xpSeqRef = useRef(0)
   const reconciling = useRef(false)
 
   useEffect(() => {
@@ -72,6 +76,14 @@ export function useStudentData(): StudentDataResult {
           }
 
           prevGradesRef.current = next
+
+          const newXp = newData.xp ?? 0
+          if (prevXpRef.current !== null && newXp > prevXpRef.current) {
+            xpSeqRef.current += 1
+            setXpGainEvent({ gain: newXp - prevXpRef.current, seq: xpSeqRef.current })
+          }
+          prevXpRef.current = newXp
+
           setUserData(newData)
           setSnapshotError(null)
 
@@ -103,5 +115,5 @@ export function useStudentData(): StudentDataResult {
       ? Object.fromEntries(columns.map((c) => [c.key, { status: "Waiting" as EvaluationStatus, score: 0 }]))
       : rawGrades
 
-  return { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError }
+  return { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError, xpGainEvent }
 }
