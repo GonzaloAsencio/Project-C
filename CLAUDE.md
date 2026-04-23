@@ -29,16 +29,19 @@ The `src/` directory is split into three bounded contexts plus shared infrastruc
 - **`gamification/`** — `PlayerProgress` domain entity (XP/level logic), `AddXP` use case (subscribes to `EvaluationApproved` event), `FirestoreProgressRepo`, `XPBar`, `XPToast` (bottom-center toast on XP gain). Cinematic modals in subdirectories: `level-up/LevelUpModal` (triggered by `levelUpEvent`), `victory/VictoryModal` and `defeat/DefeatModal` (triggered by `overlay` state). All three modals use `framer-motion` `AnimatePresence` at `z-[400]`. `VictoryModal` reuses animation primitives (`RadialRays`, `Particles`, `Sparkles`) defined in `level-up/` — those files are shared, not level-up-exclusive.
 - **`shared/`** — `firebase.ts` (Firestore/Auth init), `AuthContext`, `EventBus`, `OutboxService`, `RouteGuard`, `services.ts` (singleton instances), `ErrorBoundary` (class component wrapping both panels), `LoadingScreen` (Suspense fallback), `useLogout` (signs out + redirects to `/login`)
 
-### Event-driven XP flow (Outbox pattern)
+### XP flow
 
-When a teacher approves an evaluation:
-1. `ApproveEvaluation.execute()` writes to Firestore atomically (evaluation + `gradesSummary` on user doc)
-2. It enqueues a domain event (`EvaluationApproved`) into the Firestore `outbox` collection
-3. `OutboxService.processAll()` reads pending outbox docs and emits them on the in-memory `EventBus`
-4. `AddXP` listens on `EventBus` for `EvaluationApproved` and calls `FirestoreProgressRepo.addXPIdempotent()`
-5. Idempotency is enforced via `processedEvalIds[]` on the user document (Firestore transaction)
+**Evaluation XP** is student-claimed, not automatically awarded on approval:
+1. Teacher approves → `ApproveEvaluation.execute()` writes atomically (evaluation + `gradesSummary` on user doc). No outbox enqueue.
+2. Student sees the grade change via `useStudentData` `onSnapshot` subscription.
+3. Student clicks "Ver resultado" in `EvalList` → calls `progressRepo.addXPIdempotent(uid, xp, evalId)` directly (Victory only). Triggers confetti + `VictoryModal`. Defeat only shows `DefeatModal`, no XP.
+4. Claimed eval keys are tracked in localStorage (`desafios_claimed_{uid}`) so the button becomes a badge after claiming.
 
-Attendance XP (+20) bypasses the outbox — `AttendanceService.markPresent()` (teacher) and `markSelfPresent()` (student self-registration) both call `addXPIdempotent` directly with `evalId = "{classId}_{studentUid}"`. XP is never reverted when unmarking, clearing, or deleting a session — idempotency via `processedEvalIds` prevents double-awarding if re-marked.
+**Attendance XP (+20)**: `AttendanceService.markPresent()` (teacher) and `markSelfPresent()` (student) both call `addXPIdempotent` with `evalId = "{classId}_{studentUid}"`. XP is never reverted on unmark/clear/delete.
+
+**Idempotency**: `processedEvalIds[]` on the user doc (Firestore transaction) prevents double-awarding across both paths.
+
+**Outbox infrastructure** (`OutboxService`, `EventBus`, `AddXP`) still exists and is wired in `main.tsx`, but `ApproveEvaluation` no longer enqueues events. The `window.addEventListener("online", …)` calls `outboxService.recoverPending()` for any stale outbox docs.
 
 ### Firestore data model
 
