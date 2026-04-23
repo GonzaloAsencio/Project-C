@@ -17,28 +17,34 @@ interface FirstLoginClassSelectionProps {
 export default function FirstLoginClassSelection({ displayName }: FirstLoginClassSelectionProps) {
   const { user } = useAuth()
   const [selectedClass, setSelectedClass] = useState<PlayableAvatarClass>("maga")
-  const [saving, setSaving] = useState(false)
+  const [phase, setPhase] = useState<"idle" | "saving" | "success">("idle")
   const [error, setError] = useState<string | null>(null)
 
   const options = useMemo(() => PLAYABLE_AVATAR_CLASSES.map((cls) => getAvatarVisual(cls)), [])
 
   async function handleConfirm() {
     if (!user) return
-    setSaving(true)
+    setPhase("saving")
     setError(null)
     try {
       await authAdapter.completeStudentAvatarClass(user.uid, selectedClass)
+      setPhase("success")
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo guardar tu clase"
       setError(message)
-    } finally {
-      setSaving(false)
+      setPhase("idle")
     }
   }
 
   return (
-    <div className={styles.root}>
+    <div className={phase === "success" ? `${styles.root} ${styles.rootSuccess}` : styles.root}>
       <div className={styles.auroraLayer} aria-hidden="true" />
+      {phase === "success" && (
+        <div className={styles.successOverlay} role="status" aria-live="polite">
+          <p className={styles.successTitle}>Clase vinculada</p>
+          <p className={styles.successSubtitle}>Preparando tu panel...</p>
+        </div>
+      )}
       <div className={styles.panel}>
         <div className={styles.header}>
           <p className={styles.kicker}>Primer ingreso</p>
@@ -57,7 +63,7 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
                 type="button"
                 className={selected ? `${styles.classCard} ${styles.classCardSelected}` : styles.classCard}
                 onClick={() => setSelectedClass(option.key as PlayableAvatarClass)}
-                disabled={saving}
+                disabled={phase !== "idle"}
               >
                 {option.image && (
                   <span className={styles.classPreview}>
@@ -82,8 +88,12 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
         {error && <p className={styles.error}>⚠ {error}</p>}
 
         <div className={styles.actions}>
-          <button type="button" className={styles.confirmBtn} onClick={handleConfirm} disabled={saving}>
-            {saving ? "Guardando..." : "Confirmar clase"}
+          <button type="button" className={styles.confirmBtn} onClick={handleConfirm} disabled={phase !== "idle"}>
+            {phase === "saving"
+              ? "Invocando clase..."
+              : phase === "success"
+                ? "Listo"
+                : "Confirmar clase"}
           </button>
         </div>
       </div>

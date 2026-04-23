@@ -12,16 +12,13 @@ import { app, auth, db } from "../../shared/firebase"
 import { User } from "../domain/User"
 import type { Role, AvatarClass } from "../domain/User"
 import { PLAYABLE_AVATAR_CLASSES } from "../domain/avatarClasses"
+import {
+  buildStudentEvaluationDocs,
+  buildStudentUserDoc,
+  buildTeacherUserDoc,
+} from "../application/studentProvisioning"
 
 const SECONDARY_APP_NAME = "project-c-teacher-creator"
-
-// Evaluation seed config
-const EVAL_SEED = [
-  { key: "tp1",      type: "TP",      index: 1 },
-  { key: "tp2",      type: "TP",      index: 2 },
-  { key: "parcial1", type: "Parcial", index: 1 },
-  { key: "parcial2", type: "Parcial", index: 2 },
-] as const
 
 function getSecondaryAuth() {
   const appInstance = getApps().find((a) => a.name === SECONDARY_APP_NAME) ?? initializeApp(app.options, SECONDARY_APP_NAME)
@@ -53,18 +50,7 @@ export class FirebaseAuthAdapter {
 
     const batch = writeBatch(db)
 
-    // Create user document
-    batch.set(doc(db, "users", uid), {
-      displayName,
-      email,
-      role: "teacher",
-      avatarClass: null,
-      level: 1,
-      xp: 0,
-      xpToNextLevel: 100,
-      gradesSummary: {},
-      processedEvalIds: [],
-    })
+    batch.set(doc(db, "users", uid), buildTeacherUserDoc({ displayName, email }))
 
     await batch.commit()
     return new User(uid, email, "teacher", null)
@@ -82,26 +68,10 @@ export class FirebaseAuthAdapter {
     const uid = credential.user.uid
 
     const batch = writeBatch(db)
-    batch.set(doc(db, "users", uid), {
-      displayName,
-      email,
-      role: "student",
-      avatarClass: null,
-      level: 1,
-      xp: 0,
-      xpToNextLevel: 100,
-      gradesSummary: {},
-      processedEvalIds: [],
-    })
+    batch.set(doc(db, "users", uid), buildStudentUserDoc({ displayName, email }))
 
-    for (const ev of EVAL_SEED) {
-      batch.set(doc(db, "evaluations", `${uid}_${ev.key}`), {
-        studentUid: uid,
-        type: ev.type,
-        index: ev.index,
-        status: "Pending",
-        score: 0,
-      })
+    for (const evaluationDoc of buildStudentEvaluationDocs(uid)) {
+      batch.set(doc(db, "evaluations", evaluationDoc.id), evaluationDoc.data)
     }
 
     try {

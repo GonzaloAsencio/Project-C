@@ -8,6 +8,10 @@
   background: radial-gradient(circle at 15% 20%, #0f766e 0%, #0f172a 42%, #020617 100%);
 }
 
+.rootSuccess {
+  animation: successDim 0.45s ease forwards;
+}
+
 .auroraLayer {
   position: absolute;
   inset: -20%;
@@ -29,6 +33,34 @@
   padding: 2rem;
   position: relative;
   z-index: 1;
+}
+
+.successOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: radial-gradient(circle, rgba(2, 6, 23, 0.62) 0%, rgba(2, 6, 23, 0.86) 66%);
+  backdrop-filter: blur(3px);
+  animation: revealSuccess 0.45s ease;
+}
+
+.successTitle {
+  margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: #fef3c7;
+}
+
+.successSubtitle {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 0.93rem;
 }
 
 .header {
@@ -211,5 +243,23 @@
   }
   to {
     transform: translate3d(2%, -3%, 0) scale(1.04);
+  }
+}
+
+@keyframes revealSuccess {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes successDim {
+  from {
+    filter: saturate(1);
+  }
+  to {
+    filter: saturate(0.84);
   }
 }

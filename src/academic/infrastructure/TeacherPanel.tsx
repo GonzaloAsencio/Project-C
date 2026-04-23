@@ -16,6 +16,7 @@ import AttendanceSession from "./AttendanceSession"
 import StudentDetailModal from "./StudentDetailModal"
 import type { CellState } from "./GradeCell"
 import { FirebaseAuthAdapter } from "../../identity/infrastructure/FirebaseAuthAdapter"
+import { isValidTemporaryPassword } from "../../identity/application/studentProvisioning"
 import styles from "./TeacherPanel.module.css"
 
 type CellKey = string
@@ -204,6 +205,10 @@ export default function TeacherPanel() {
 
   async function handleCreateStudentAccount() {
     if (!newStudentName.trim() || !newStudentEmail.trim() || !newStudentPassword.trim()) return
+    if (!isValidTemporaryPassword(newStudentPassword)) {
+      setCreateStudentError("La contrasena temporal debe tener al menos 6 caracteres")
+      return
+    }
     setCreatingStudent(true)
     setCreateStudentError(null)
     setCreateStudentSuccess(null)
