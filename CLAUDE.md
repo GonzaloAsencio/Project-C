@@ -25,8 +25,8 @@ This is a **React + TypeScript + Vite** app backed by **Firebase** (Auth + Fires
 The `src/` directory is split into three bounded contexts plus shared infrastructure:
 
 - **`identity/`** — Auth (Firebase Auth adapter), user domain model (`User`, `AvatarClass`), login use case, `AuthUI` (login form), `StudentPanel` (student dashboard)
-- **`academic/`** — `Evaluation` domain entity, `ApproveEvaluation` use case, `UpdateGrade` use case, `AttendanceService`, `TeacherPanel`, `FirestoreEvalRepo`
-- **`gamification/`** — `PlayerProgress` domain entity (XP/level logic), `AddXP` use case (subscribes to `EvaluationApproved` event), `FirestoreProgressRepo`, `XPBar`, `XPToast` (bottom-center toast on XP gain). Cinematic modals in subdirectories: `level-up/LevelUpModal` (triggered by `levelUpEvent`), `victory/VictoryModal` and `defeat/DefeatModal` (triggered by `overlay` state). All three modals use `framer-motion` `AnimatePresence` at `z-[400]`. `VictoryModal` reuses animation primitives (`RadialRays`, `Particles`, `Sparkles`) defined in `level-up/` — those files are shared, not level-up-exclusive.
+- **`academic/`** — `Evaluation` domain entity, `ApproveEvaluation` use case, `UpdateGrade` use case, `AttendanceService`, `TeacherPanel`, `FirestoreEvalRepo`, `EnemySprite` (animated combat-mode enemy with 4 types: `tp1` 👾, `tp2` 🤖, `parcial1` 💀, `parcial2` 🐉)
+- **`gamification/`** — `PlayerProgress` domain entity (XP/level logic), `AddXP` use case (subscribes to `EvaluationApproved` event via `EventBus`), `FirestoreProgressRepo`, `XPBar`, `XPToast` (bottom-center toast on XP gain). Cinematic modals in subdirectories: `level-up/LevelUpModal` (triggered by `levelUpEvent` from `useStudentData`), `victory/VictoryModal` and `defeat/DefeatModal` (rendered via `createPortal` inside `EvalList`, triggered when student clicks "Ver resultado"). All three modals use `framer-motion` `AnimatePresence` at `z-[400]`. `VictoryModal` reuses animation primitives (`RadialRays`, `Particles`, `Sparkles`) defined in `level-up/` — those files are shared, not level-up-exclusive.
 - **`shared/`** — `firebase.ts` (Firestore/Auth init), `AuthContext`, `EventBus`, `OutboxService`, `RouteGuard`, `services.ts` (singleton instances), `ErrorBoundary` (class component wrapping both panels), `LoadingScreen` (Suspense fallback), `useLogout` (signs out + redirects to `/login`)
 
 ### XP flow
@@ -77,9 +77,13 @@ A fifth collection `config/evalColumns` stores the active column definitions: `{
 ### Data-fetching hooks
 
 - **`useEvalColumns`** (`shared/`) — `onSnapshot` subscription to `config/evalColumns`. Returns `{ columns: EvalColumn[], loading }`. Falls back to `DEFAULT_COLUMNS` if the document doesn't exist. Used by both teacher and student views — always import `EvalColumn` and column data from here.
-- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) and sets `overlay: { type, label } | null`, which drives `VictoryModal` / `DefeatModal`. Detects XP delta via `prevXpRef` (null-initialized to skip first snapshot) and emits `xpGainEvent: { gain, seq } | null`. Detects level change via `prevLevelRef` (same null pattern) and emits `levelUpEvent: { prevLevel, nextLevel } | null`. Returns all of the above plus `victoryAnim`, `columns`. Fills missing `gradesSummary` keys with `{ status: "Waiting", score: 0 }` defaults. Exports `GradeEntry` and `UserDocument`.
+- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects XP delta via `prevXpRef` (null-initialized to skip first snapshot) and emits `xpGainEvent: { gain, seq } | null`. Detects level change via `prevLevelRef` (same null pattern) and emits `levelUpEvent: { prevLevel, nextLevel } | null`. Returns `{ userData, grades, columns, snapshotError, xpGainEvent, levelUpEvent }`. Fills missing `gradesSummary` keys with `{ status: "Waiting", score: 0 }` defaults. Exports `GradeEntry` and `UserDocument`.
 - **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`.
 - **`useActiveAttendanceSession`** (`identity/infrastructure/`) — subscribes to attendance docs with `selfRegistration == true` and filters client-side for today's date. Returns `{ session: ClassSession | null, isWithinWindow: boolean }`. The query **must** filter by `selfRegistration == true` (not by date range) — a date-range-only query gets rejected by Firestore security rules because it could return docs the student can't read.
+
+### StudentPanel layout
+
+`StudentPanel` has two responsive layouts: desktop (`lg:` breakpoint, 3-column flex with absolute-positioned side panels) and mobile (single-column stack). Both share the same data from `useStudentData`. `victoryAnim` is local state in `StudentPanel`, set for 3 s when `xpGainEvent` fires — it animates `AvatarDisplay`.
 
 ### combatMode / isDungeon
 
@@ -103,7 +107,7 @@ UI components (`EvalList`, `EvalMissionSelector`) receive both `columns: EvalCol
 - Teacher: `createSession(teacherUid, date, selfRegistration?, windowStart?, windowEnd?)`, `markPresent/markAbsent`, `markAllPresent`, `clearAllPresent`, `deleteSession`
 - Student: `markSelfPresent` (uses `arrayUnion` — no read-before-write needed)
 
-Sessions with `selfRegistration: true` display `AttendanceRegistration` in `StudentPanel` — a self-contained component that uses `useActiveAttendanceSession` internally and renders nothing when outside the time window or when there's no active session.
+Sessions with `selfRegistration: true` surface an attendance challenge card inside `EvalList` — it uses `useActiveAttendanceSession` and renders nothing when outside the time window or when there's no active session. (`AttendanceRegistration` exists as a standalone component but is not currently mounted in `StudentPanel`.)
 
 "✓ Todos" in `AttendanceSession` is disabled when `presentCount === students.length` (all already present). "✕ Limpiar" shows a `window.confirm` with "El XP ya otorgado no se revertirá" before executing — confirmation is handled in the component, not in the handler.
 
@@ -117,11 +121,11 @@ Students can update only `xp`, `level`, `xpToNextLevel`, `processedEvalIds` on t
 
 ### Singleton services
 
-`src/shared/services.ts` exports pre-wired singleton instances (`outboxService`, `attendanceService`). Import from there — don't instantiate these classes directly in components.
+`src/shared/services.ts` exports pre-wired singleton instances (`outboxService`, `progressRepo`, `attendanceService`). Import from there — don't instantiate these classes directly in components. Note: `main.tsx` also creates a separate `FirestoreProgressRepo` instance used solely for the `AddXP` EventBus handler.
 
 ### App initialization (main.tsx)
 
-`main.tsx` wires the app at startup (module scope, not inside a component): registers the `AddXP` handler on `EventBus`, and attaches an `online` event listener that calls `outboxService.processAll()` to drain any outbox entries missed while offline. Both registrations happen once per page load.
+`main.tsx` wires the app at startup (module scope, not inside a component): registers the `AddXP` handler on `EventBus`, and attaches an `online` event listener that calls `outboxService.recoverPending()` to drain any stale outbox entries. Both registrations happen once per page load.
 
 ### Routing & auth
 

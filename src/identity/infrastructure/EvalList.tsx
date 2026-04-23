@@ -17,16 +17,14 @@ interface EvalListProps {
   isDungeon: boolean
 }
 
-const CARD_LIGHT = "bg-[#faf7f2] border border-[#cfc0a4] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.07)]"
-const CARD_DUNGEON = "bg-[#1c1828]/70 border border-[#3d3458] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_4px_rgba(0,0,0,0.35)]"
-
 const ICON_COLORS: Record<EvaluationStatus | "attendance", string> = {
-  Victory:    "text-amber-400 bg-amber-400/15 shadow-[0_0_0_2px_#f59e0b,0_0_0_4px_#f59e0b22]",
-  Defeat:     "text-slate-400 bg-slate-400/10 shadow-[0_0_0_2px_#94a3b8,0_0_0_4px_#94a3b818]",
-  Pending:    "text-indigo-400 bg-indigo-400/10 shadow-[0_0_0_2px_#a5b4fc,0_0_0_4px_#a5b4fc22]",
-  Waiting:    "text-slate-400/50 bg-slate-200/20 shadow-[0_0_0_2px_#cbd5e1,0_0_0_4px_#cbd5e110]",
-  attendance: "text-emerald-400 bg-emerald-400/15 shadow-[0_0_0_2px_#34d399,0_0_0_4px_#34d39922]",
+  Victory:    "text-emerald-500",
+  Defeat:     "text-red-400",
+  Pending:    "text-indigo-400",
+  Waiting:    "text-slate-300",
+  attendance: "text-emerald-500",
 }
+
 
 const XP_REWARD: Record<"TP" | "Parcial", number> = { TP: 70, Parcial: 200 }
 
@@ -98,62 +96,65 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
     setClaimLoading(null)
   }
 
+
   return (
     <>
-      <div className={cn(
-        "rounded-2xl shadow-sm border w-full overflow-hidden",
-        isDungeon ? "bg-white/5 border-white/10" : "bg-white/80 backdrop-blur-sm border-white/60"
-      )}>
-        {/* Header */}
-        <div className={cn(
-          "flex items-center justify-between px-5 py-4 border-b",
-          isDungeon ? "border-white/10" : "border-black/5"
+      {/* ── Header — outside the card ── */}
+      <div className="flex items-center gap-2.5 px-1">
+        <Swords
+          className="w-5 h-5 shrink-0"
+          style={{ color: isDungeon ? "#a5b4fc" : "#1e1b4b", opacity: 0.65 }}
+        />
+        <h2 className={cn(
+          "text-base font-bold tracking-widest uppercase leading-none",
+          isDungeon ? "text-white/90" : "text-[#1e1b4b]"
         )}>
-          <div>
-            <h2 className={cn("text-base font-bold tracking-widest uppercase", isDungeon ? "text-white" : "text-[#1e1b4b]")}>
-              Desafíos
-            </h2>
-            <p className={cn("text-xs mt-0.5", isDungeon ? "text-white/40" : "text-gray-400")}>
-              .: completa los desafíos para ganar experiencia
-            </p>
-          </div>
-          <Swords className="w-4 h-4 opacity-60" style={{ color: isDungeon ? "#a5b4fc" : "#1e1b4b" }} />
-        </div>
+          Desafíos
+        </h2>
+      </div>
 
-        {/* Challenge list */}
-        <div className="flex flex-col gap-2.5 p-4">
-          {/* Attendance challenge */}
+      <div className={cn(
+        "rounded-2xl overflow-hidden w-full",
+        isDungeon
+          ? "bg-[#0d0d1a]/70 border border-purple-400/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+          : "bg-white/40 backdrop-blur-sm border border-[#c8aa6e]/20 shadow-[0_4px_24px_rgba(30,27,75,0.06)]"
+      )}>
+
+        {/* ── Mission rows ── */}
+        <div className="flex flex-col pb-1">
+
           {hasAttendance && (
-            <ChallengeCard
-              icon={<CalendarCheck className="w-4 h-4" />}
-              iconClass={cn(ICON_COLORS["attendance"])}
+            <MissionRow
+              icon={<CalendarCheck className="w-[17px] h-[17px]" />}
+              iconClass={ICON_COLORS["attendance"]}
               title="Asistencia"
               subtitle="Ganar +20 XP"
+              xp="+20 XP"
               isDungeon={isDungeon}
+              done={alreadyPresent || attendanceRegistered}
               action={
-                alreadyPresent || attendanceRegistered ? (
-                  <ClaimedBadge color="emerald" label="✓ Asistencia +20 XP" />
-                ) : (
-                  <ActionButton
-                    label={attendanceLoading ? "Registrando…" : "Registrar"}
-                    onClick={handleAttendance}
-                    disabled={attendanceLoading}
-                    variant="primary"
-                  />
-                )
+                alreadyPresent || attendanceRegistered
+                  ? <ClaimedBadge color="emerald" />
+                  : <ActionButton
+                      label={attendanceLoading ? "Registrando…" : "Registrar"}
+                      onClick={handleAttendance}
+                      disabled={attendanceLoading}
+                      variant="primary"
+                      isDungeon={isDungeon}
+                    />
               }
               error={attendanceError}
             />
           )}
 
-          {/* Eval challenges */}
           {columns.length === 0 && !hasAttendance && (
-            <p className={cn("text-center text-xs py-4", isDungeon ? "text-white/40" : "text-gray-400")}>
+            <p className={cn("text-center text-xs py-6", isDungeon ? "text-white/30" : "text-[#1e1b4b]/30")}>
               No hay desafíos disponibles
             </p>
           )}
+
           {columns.map((col) => {
-            const entry = grades[col.key]
+            const entry  = grades[col.key]
             const status: EvaluationStatus = entry?.status ?? "Waiting"
             const claimed = claimedKeys.has(col.key)
             const loading = claimLoading === col.key
@@ -163,22 +164,22 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
             let action: React.ReactNode
             if (status === "Waiting") {
               action = (
-                <span className={cn("flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium",
-                  isDungeon ? "bg-white/5 text-white/30 border border-white/10" : "bg-slate-100/80 text-slate-400 border border-slate-200")}>
+                <span className={cn("flex items-center gap-1 text-[11px] font-medium",
+                  isDungeon ? "text-white/25" : "text-slate-400/70")}>
                   <Lock className="w-3 h-3" /> Bloqueado
                 </span>
               )
             } else if (status === "Pending") {
               action = (
-                <span className={cn("px-3 py-1 rounded-full text-xs font-medium",
-                  isDungeon ? "bg-indigo-400/10 text-indigo-300 border border-indigo-400/20" : "bg-indigo-50 text-indigo-400 border border-indigo-200")}>
+                <span className={cn("text-[11px] font-semibold",
+                  isDungeon ? "text-indigo-300/70" : "text-indigo-500")}>
                   En progreso…
                 </span>
               )
             } else if (claimed) {
               action = status === "Victory"
-                ? <ClaimedBadge color="gold" label="✓ Recompensa obtenida" />
-                : <ClaimedBadge color="slate" label="✗ Completado" />
+                ? <ClaimedBadge color="emerald" />
+                : <ClaimedBadge color="slate" />
             } else {
               action = (
                 <ActionButton
@@ -186,23 +187,33 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
                   onClick={() => handleViewResult(col, status)}
                   disabled={loading}
                   variant="neutral"
+                  isDungeon={isDungeon}
                 />
               )
             }
 
             return (
-              <ChallengeCard
+              <MissionRow
                 key={col.key}
-                icon={<TypeIcon className="w-4 h-4" />}
-                iconClass={cn(ICON_COLORS[status])}
+                icon={<TypeIcon className="w-[17px] h-[17px]" />}
+                iconClass={ICON_COLORS[status]}
                 title={col.label}
                 subtitle={`Ganar +${xp} XP`}
+                xp={status === "Defeat" && claimed ? "0 XP" : `+${xp} XP`}
                 isDungeon={isDungeon}
+                done={claimed}
                 action={action}
               />
             )
           })}
         </div>
+      </div>
+
+      {/* ── Closing fade — visual end marker ── */}
+      <div className="flex items-center gap-3 px-1 opacity-40">
+        <div className="flex-1 h-px" style={{ background: isDungeon ? "rgba(165,180,252,0.2)" : "rgba(200,170,110,0.25)" }} />
+        <span className="text-[8px] leading-none select-none" style={{ color: isDungeon ? "rgba(165,180,252,0.5)" : "rgba(200,170,110,0.6)" }}>◆</span>
+        <div className="flex-1 h-px" style={{ background: isDungeon ? "rgba(165,180,252,0.2)" : "rgba(200,170,110,0.25)" }} />
       </div>
 
       {createPortal(
@@ -226,36 +237,72 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
 
 /* ─── Sub-components ─── */
 
-interface ChallengeCardProps {
+interface MissionRowProps {
   icon: React.ReactNode
   iconClass: string
   title: string
   subtitle: string
+  xp: string
   isDungeon: boolean
   action: React.ReactNode
   error?: string | null
+  done?: boolean
 }
 
-function ChallengeCard({ icon, iconClass, title, subtitle, isDungeon, action, error }: ChallengeCardProps) {
+function MissionRow({ icon, iconClass, title, subtitle, xp, isDungeon, action, error, done }: MissionRowProps) {
   return (
-    <div className={cn(
-      "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150",
-      isDungeon ? CARD_DUNGEON : CARD_LIGHT,
-    )}>
-      <div className={cn("w-9 h-9 rounded-full flex items-center justify-center shrink-0", iconClass)}>
+    <div
+      className={cn(
+        "flex items-center gap-3 px-4 py-[11px] border-b transition-colors duration-100",
+        isDungeon
+          ? "border-b-white/[0.04] hover:bg-white/[0.025]"
+          : "border-b-[#c8aa6e]/25 hover:bg-[#1e1b4b]/[0.02]",
+        done && "opacity-60",
+        "[&:last-child]:border-b-0"
+      )}
+    >
+      {/* Status icon */}
+      <div className={cn(
+        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+        iconClass,
+        isDungeon ? "bg-white/10" : "bg-black/[0.06]",
+      )}>
         {icon}
       </div>
+
+      {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className={cn("font-semibold text-xs leading-tight", isDungeon ? "text-white/90" : "text-[#2d2460]")}>
+        <p className={cn("font-bold text-[15px] leading-tight truncate", isDungeon ? "text-white/90" : "text-[#1e1b4b]")}>
           {title}
         </p>
-        <div className={cn("h-px w-full my-1", isDungeon ? "bg-white/10" : "bg-[#cfc0a4]/60")} />
-        <p className={cn("text-[10px] truncate", isDungeon ? "text-white/40" : "text-gray-400")}>
+        <p className={cn("text-xs mt-[2px]", isDungeon ? "text-white/30" : "text-[#1e1b4b]/38")}>
           {subtitle}
         </p>
-        {error && <p className="text-[10px] text-red-400 mt-0.5">{error}</p>}
+        {error && <p className="text-xs text-red-400 mt-0.5">{error}</p>}
       </div>
-      <div className="shrink-0">{action}</div>
+
+      {/* XP pill — gold palette matching ProfileCard */}
+      <div className={cn(
+        "w-[68px] rounded-lg py-[5px] text-center shrink-0 border",
+        isDungeon
+          ? "border-purple-400/20 bg-purple-400/5"
+          : "border-[#c8aa6e]/30 bg-[#c8aa6e]/5"
+      )}>
+        <span className={cn(
+          "text-xs font-bold tabular-nums",
+          isDungeon ? "text-purple-300/55" : "text-[#b8860b]"
+        )}>
+          {xp}
+        </span>
+      </div>
+
+      {/* Action — fixed width keeps all rows identical */}
+      <div className={cn(
+        "pl-4 border-l w-[110px] flex items-center justify-center shrink-0",
+        isDungeon ? "border-white/[0.06]" : "border-[#c8aa6e]/15"
+      )}>
+        {action}
+      </div>
     </div>
   )
 }
@@ -265,19 +312,24 @@ interface ActionButtonProps {
   onClick: () => void
   disabled?: boolean
   variant: "primary" | "neutral"
+  isDungeon: boolean
 }
 
-function ActionButton({ label, onClick, disabled, variant }: ActionButtonProps) {
+function ActionButton({ label, onClick, disabled, variant, isDungeon }: ActionButtonProps) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "px-3 py-1 rounded-full text-xs font-semibold transition-all",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
+        "text-sm font-bold px-2.5 py-1.5 rounded-lg transition-all whitespace-nowrap",
+        "disabled:opacity-40 disabled:cursor-not-allowed",
         variant === "primary"
-          ? "bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95"
-          : "bg-white/10 border border-white/20 text-white/80 hover:bg-white/20 active:scale-95"
+          ? isDungeon
+            ? "text-emerald-400 hover:bg-emerald-400/10"
+            : "text-emerald-600 hover:bg-emerald-50"
+          : isDungeon
+            ? "text-indigo-400 hover:bg-indigo-400/10"
+            : "text-[#1e1b4b]/70 hover:text-[#1e1b4b] hover:bg-[#1e1b4b]/[0.04]"
       )}
     >
       {label}
@@ -286,20 +338,17 @@ function ActionButton({ label, onClick, disabled, variant }: ActionButtonProps) 
 }
 
 interface ClaimedBadgeProps {
-  color: "gold" | "slate" | "emerald"
-  label: string
+  color: "slate" | "emerald"
 }
 
-function ClaimedBadge({ color, label }: ClaimedBadgeProps) {
-  const cls = {
-    gold:    "bg-amber-400/15 text-amber-400 border border-amber-400/30",
-    slate:   "bg-slate-400/10 text-slate-400 border border-slate-400/25",
-    emerald: "bg-emerald-400/15 text-emerald-400 border border-emerald-400/30",
+function ClaimedBadge({ color }: ClaimedBadgeProps) {
+  const config = {
+    emerald: { icon: "✓", cls: "bg-emerald-50 text-emerald-600 border border-emerald-200/80" },
+    slate:   { icon: "✕", cls: "bg-red-50/80 text-red-400 border border-red-200/60" },
   }[color]
   return (
-    <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", cls)}>
-      {label}
-    </span>
+    <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm", config.cls)}>
+      {config.icon}
+    </div>
   )
 }
-

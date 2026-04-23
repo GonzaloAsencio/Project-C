@@ -89,7 +89,7 @@ export default function StudentPanel() {
         </div>
 
         {/* Right — Profile + Evals */}
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4 w-96 max-h-[85vh]">
+        <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4 w-96">
           <ProfileCard
             name={userData.displayName}
             avatarClass={userData.avatarClass}
@@ -97,9 +97,7 @@ export default function StudentPanel() {
             currentXP={userData.xp}
             xpToNextLevel={xpToNext}
           />
-          <div className="flex-1 overflow-auto">
-            <EvalList grades={grades} columns={columns} isDungeon={combatMode} />
-          </div>
+          <EvalList grades={grades} columns={columns} isDungeon={combatMode} />
         </div>
       </div>
 

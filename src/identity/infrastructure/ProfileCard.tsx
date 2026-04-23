@@ -46,13 +46,6 @@ export default function ProfileCard({ name, avatarClass, level, currentXP, xpToN
         </div>
       </div>
 
-      {/* ── Separator ── */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-px bg-[#c8aa6e]/30" />
-        <span className="text-[#c8aa6e]/60 text-[10px]">◆</span>
-        <div className="flex-1 h-px bg-[#c8aa6e]/30" />
-      </div>
-
       {/* ── Level / XP row ── */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-baseline justify-between">
@@ -78,6 +71,13 @@ export default function ProfileCard({ name, avatarClass, level, currentXP, xpToN
             {xpToNextLevel} XP para siguiente nivel
           </p>
         )}
+      </div>
+
+      {/* ── Separator ── */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-px bg-[#c8aa6e]/50" />
+        <span className="text-[#c8aa6e]/80 text-[10px]">◆</span>
+        <div className="flex-1 h-px bg-[#c8aa6e]/50" />
       </div>
 
     </div>
