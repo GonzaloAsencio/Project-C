@@ -13,6 +13,8 @@ import { useStudentData } from "./useStudentData"
 import AttendanceRegistration from "./AttendanceRegistration"
 import { XPToast } from "../../gamification/infrastructure/XPToast"
 import { LevelUpModal } from "../../gamification/infrastructure/level-up/LevelUpModal"
+import { VictoryModal } from "../../gamification/infrastructure/victory/VictoryModal"
+import { DefeatModal } from "../../gamification/infrastructure/defeat/DefeatModal"
 import styles from "./StudentPanel.module.css"
 
 interface EvaluationApprovedPayload { evalId: string; studentUid: string; xpReward: number }
@@ -78,20 +80,16 @@ export default function StudentPanel() {
       )}
 
       {/* Victory/Defeat overlay */}
-      {overlay && (
-        <div
-          className={clsx(styles.overlay, overlay.type === "victory" ? styles.overlayVictory : styles.overlayDefeat)}
-          role="dialog" aria-modal="true"
-          aria-label={overlay.type === "victory" ? "Victoria" : "Derrota"}
-        >
-          <div className={styles.overlayCard}>
-            <div className={styles.overlayIcon}>{overlay.type === "victory" ? "🏆" : "💀"}</div>
-            <h2 className={styles.overlayTitle}>{overlay.type === "victory" ? "¡VICTORIA!" : "DERROTA"}</h2>
-            <p className={styles.overlaySub}>{overlay.label}</p>
-            <button className={styles.overlayBtn} onClick={() => setOverlay(null)} autoFocus>Aceptar</button>
-          </div>
-        </div>
-      )}
+      <VictoryModal
+        open={!!overlay && overlay.type === "victory"}
+        evalName={overlay?.label ?? ""}
+        onClose={() => setOverlay(null)}
+      />
+      <DefeatModal
+        open={!!overlay && overlay.type === "defeat"}
+        evalName={overlay?.label ?? ""}
+        onClose={() => setOverlay(null)}
+      />
 
       {/* Navbar */}
       <nav className={clsx(styles.navbar, combatMode && styles.navbarDungeon)}>
