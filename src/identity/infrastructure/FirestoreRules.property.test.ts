@@ -168,6 +168,45 @@ describe("FirestoreRules — Property 10: Restricción de escritura por rol", ()
     )
   })
 
+  it("student no puede actualizar XP de otro users/{uid}", () => {
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 28 }),
+        fc.string({ minLength: 1, maxLength: 28 }).filter((v) => v.length > 0),
+        fc.integer({ min: 0, max: 960 }),
+        (authUid, targetUid, xp) => {
+          fc.pre(authUid !== targetUid)
+          const auth: AuthContext = { uid: authUid, role: "student" }
+          const before: UserDoc = { xp: 0, level: 1, xpToNextLevel: 100, processedEvalIds: [] }
+          const after: UserDoc = { xp, level: 1, xpToNextLevel: Math.max(0, 100 - xp), processedEvalIds: [] }
+          return canUpdateUser(targetUid, auth, before, after) === false
+        }
+      )
+    )
+  })
+
+  it("student no puede modificar avatarClass y XP en la misma operacion", () => {
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 28 }),
+        fc.constantFrom(...PLAYABLE_CLASSES),
+        fc.integer({ min: 0, max: 960 }),
+        (uid, avatarClass, xp) => {
+          const auth: AuthContext = { uid, role: "student" }
+          const before: UserDoc = { avatarClass: null, xp: 0, level: 1, xpToNextLevel: 100, processedEvalIds: [] }
+          const after: UserDoc = {
+            avatarClass,
+            xp,
+            level: 1,
+            xpToNextLevel: Math.max(0, 100 - xp),
+            processedEvalIds: ["attendance_1"],
+          }
+          return canUpdateUser(uid, auth, before, after) === false
+        }
+      )
+    )
+  })
+
   it("teacher puede actualizar cualquier campo de users", () => {
     fc.assert(
       fc.property(
