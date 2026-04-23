@@ -10,9 +10,10 @@ interface StudentRowProps {
   cellStates: Record<string, CellState>
   onCellChange: (uid: string, evalKey: string, status: EvaluationStatus, score: number) => void
   onViewDetails: (student: StudentDocument) => void
+  onDeleteStudent: (student: StudentDocument) => void
 }
 
-export default function StudentRow({ student, columns, cellStates, onCellChange, onViewDetails }: StudentRowProps) {
+export default function StudentRow({ student, columns, cellStates, onCellChange, onViewDetails, onDeleteStudent }: StudentRowProps) {
   const grades = student.gradesSummary ?? {}
   const initials = (student.displayName || student.email).slice(0, 2).toUpperCase()
 
@@ -41,9 +42,14 @@ export default function StudentRow({ student, columns, cellStates, onCellChange,
         </td>
       ))}
       <td>
-        <button className={styles.detailBtn} onClick={() => onViewDetails(student)}>
-          Ver detalles
-        </button>
+        <div className={styles.actionButtons}>
+          <button className={styles.detailBtn} onClick={() => onViewDetails(student)}>
+            Ver detalles
+          </button>
+          <button className={styles.deleteBtn} onClick={() => onDeleteStudent(student)} title="Eliminar alumno">
+            🗑️
+          </button>
+        </div>
       </td>
     </tr>
   )

@@ -4,6 +4,7 @@ import { doc, setDoc, writeBatch, deleteField } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { attendanceService } from "../../shared/services"
 import { UpdateGrade } from "../application/UpdateGrade"
+import { DeleteStudent } from "../application/DeleteStudent"
 import { useLogout } from "../../shared/useLogout"
 import { useAuth } from "../../shared/AuthContext"
 import type { EvaluationStatus } from "../domain/Evaluation"
@@ -23,12 +24,14 @@ type CellKey = string
 
 const CONFIG_DOC = doc(db, "config", "evalColumns")
 const updateGradeUC = new UpdateGrade()
+const deleteStudentUC = new DeleteStudent()
 const authAdapter = new FirebaseAuthAdapter()
 
 type ConfirmAction =
   | { type: "bulk-reset"; col: EvalColumn }
   | { type: "delete-col"; col: EvalColumn }
   | { type: "delete-session"; sessionId: string; dateLabel: string }
+  | { type: "delete-student"; student: StudentDocument }
 
 export default function TeacherPanel() {
   const { user } = useAuth()
@@ -79,6 +82,10 @@ export default function TeacherPanel() {
   const [creatingStudent, setCreatingStudent] = useState(false)
   const [createStudentError, setCreateStudentError] = useState<string | null>(null)
   const [createStudentSuccess, setCreateStudentSuccess] = useState<string | null>(null)
+
+  // Delete student state
+  const [deletingStudentUid, setDeletingStudentUid] = useState<string | null>(null)
+  const [deleteStudentError, setDeleteStudentError] = useState<string | null>(null)
 
   async function handleCreateSession() {
     if (!user) return
@@ -196,11 +203,27 @@ export default function TeacherPanel() {
     }
   }
 
+  async function handleDeleteStudent(studentUid: string) {
+    setDeletingStudentUid(studentUid)
+    setDeleteStudentError(null)
+    try {
+      await deleteStudentUC.execute(studentUid)
+      await refresh()
+      setConfirmAction(null)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo eliminar el alumno"
+      setDeleteStudentError(message)
+    } finally {
+      setDeletingStudentUid(null)
+    }
+  }
+
   async function handleConfirm() {
     if (!confirmAction) return
     if (confirmAction.type === "bulk-reset") await handleBulkReset(confirmAction.col)
     if (confirmAction.type === "delete-col") await handleDeleteColumn(confirmAction.col)
     if (confirmAction.type === "delete-session") await handleDeleteSession(confirmAction.sessionId)
+    if (confirmAction.type === "delete-student") await handleDeleteStudent(confirmAction.student.uid)
   }
 
   async function handleCreateStudentAccount() {
@@ -250,19 +273,40 @@ export default function TeacherPanel() {
                 ? "¿Marcar todos como Pendiente?"
                 : confirmAction.type === "delete-col"
                   ? "¿Eliminar columna?"
-                  : "¿Eliminar sesión?"}
+                  : confirmAction.type === "delete-session"
+                    ? "¿Eliminar sesión?"
+                    : "¿Eliminar alumno?"}
             </p>
             <p className={styles.confirmMsg}>
               {confirmAction.type === "bulk-reset"
                 ? `Se resetearán las notas de ${students.length} alumno(s) en "${confirmAction.col.label}". Esta acción no revierte el XP ya otorgado.`
                 : confirmAction.type === "delete-col"
                   ? `Se eliminará la columna "${confirmAction.col.label}" y sus datos en todos los alumnos cargados.${hasMore ? " Hay alumnos en páginas no cargadas que no serán afectados." : ""}`
-                  : `Se eliminará la sesión del ${confirmAction.dateLabel}. El XP ya otorgado no se revertirá.`}
+                  : confirmAction.type === "delete-session"
+                    ? `Se eliminará la sesión del ${confirmAction.dateLabel}. El XP ya otorgado no se revertirá.`
+                    : `Se eliminará el alumno ${confirmAction.student.displayName || confirmAction.student.email} y todos sus datos (evaluaciones, asistencia, etc.). Esta acción es irreversible.`}
             </p>
+            {deleteStudentError && confirmAction.type === "delete-student" && (
+              <p className={styles.studentCreateError}>⚠ {deleteStudentError}</p>
+            )}
             <div className={styles.confirmActions}>
-              <button className={styles.confirmCancel} onClick={() => setConfirmAction(null)}>Cancelar</button>
-              <button className={styles.confirmOk} onClick={handleConfirm}>
-                {confirmAction.type === "bulk-reset" ? "Resetear" : "Eliminar"}
+              <button 
+                className={styles.confirmCancel} 
+                onClick={() => setConfirmAction(null)}
+                disabled={deletingStudentUid !== null}
+              >
+                Cancelar
+              </button>
+              <button 
+                className={styles.confirmOk} 
+                onClick={handleConfirm}
+                disabled={confirmAction.type === "delete-student" && deletingStudentUid !== null}
+              >
+                {confirmAction.type === "bulk-reset" 
+                  ? "Resetear" 
+                  : confirmAction.type === "delete-student" && deletingStudentUid !== null
+                    ? "Eliminando…"
+                    : "Eliminar"}
               </button>
             </div>
           </div>
@@ -510,6 +554,7 @@ export default function TeacherPanel() {
                         cellStates={cellStates}
                         onCellChange={handleCellChange}
                         onViewDetails={setDetailStudent}
+                        onDeleteStudent={(s) => setConfirmAction({ type: "delete-student", student: s })}
                       />
                     ))
                   )}
