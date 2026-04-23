@@ -16,59 +16,168 @@ interface AuthContext {
   role: Role
 }
 
-/** Simulates the Firestore Security Rules write check for `evaluations` and `users` */
-function canWrite(collection: "evaluations" | "users", auth: AuthContext): boolean {
-  // Rule: allow write only if role == "teacher"
+interface UserDoc {
+  avatarClass?: string | null
+  xp?: number
+  level?: number
+  xpToNextLevel?: number
+  processedEvalIds?: string[]
+  role?: Role
+  displayName?: string
+  email?: string
+}
+
+const XP_KEYS = ["xp", "level", "xpToNextLevel", "processedEvalIds"] as const
+const PLAYABLE_CLASSES = ["berserker", "guerrero", "maga", "arquera", "asesina", "paladin", "sacerdote"] as const
+
+function isTeacher(auth: AuthContext): boolean {
   return auth.role === "teacher"
 }
 
+function isPlayableAvatarClass(value: unknown): boolean {
+  return typeof value === "string" && PLAYABLE_CLASSES.includes(value as (typeof PLAYABLE_CLASSES)[number])
+}
+
+function changedKeys(before: UserDoc, after: UserDoc): string[] {
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)])
+  return [...keys].filter((k) => !Object.is(before[k as keyof UserDoc], after[k as keyof UserDoc]))
+}
+
+function canCreateUser(uid: string, auth: AuthContext): boolean {
+  return auth.uid === uid || isTeacher(auth)
+}
+
+function canUpdateUser(uid: string, auth: AuthContext, before: UserDoc, after: UserDoc): boolean {
+  if (isTeacher(auth)) return true
+  if (auth.uid !== uid) return false
+
+  const affected = changedKeys(before, after)
+
+  const onlyXpKeys =
+    affected.length > 0 &&
+    affected.every((k) => (XP_KEYS as readonly string[]).includes(k))
+
+  if (onlyXpKeys) return true
+
+  const avatarOnly = affected.length === 1 && affected[0] === "avatarClass"
+  if (!avatarOnly) return false
+
+  const wasMissing = !("avatarClass" in before) || before.avatarClass == null
+  return wasMissing && isPlayableAvatarClass(after.avatarClass)
+}
+
 describe("FirestoreRules — Property 10: Restricción de escritura por rol", () => {
-  it("cualquier usuario con role !== teacher no puede escribir en evaluations", () => {
+  it("student solo puede crear su propio users/{uid}", () => {
     fc.assert(
       fc.property(
         fc.string({ minLength: 1, maxLength: 28 }),
-        fc.constantFrom<Role>("student"),
-        (uid, role) => {
-          const auth: AuthContext = { uid, role }
-          return canWrite("evaluations", auth) === false
+        fc.string({ minLength: 1, maxLength: 28 }),
+        (authUid, targetUid) => {
+          const auth: AuthContext = { uid: authUid, role: "student" }
+          return canCreateUser(targetUid, auth) === (authUid === targetUid)
         }
       )
     )
   })
 
-  it("cualquier usuario con role !== teacher no puede escribir en users", () => {
+  it("teacher puede crear users/{uid} de cualquier alumno", () => {
     fc.assert(
       fc.property(
         fc.string({ minLength: 1, maxLength: 28 }),
-        fc.constantFrom<Role>("student"),
-        (uid, role) => {
-          const auth: AuthContext = { uid, role }
-          return canWrite("users", auth) === false
+        fc.string({ minLength: 1, maxLength: 28 }),
+        (teacherUid, targetUid) => {
+          const auth: AuthContext = { uid: teacherUid, role: "teacher" }
+          return canCreateUser(targetUid, auth)
         }
       )
     )
   })
 
-  it("un usuario con role teacher puede escribir en evaluations y users", () => {
+  it("student puede actualizar solo campos de XP en su propio doc", () => {
     fc.assert(
       fc.property(
         fc.string({ minLength: 1, maxLength: 28 }),
-        (uid) => {
-          const auth: AuthContext = { uid, role: "teacher" }
-          return canWrite("evaluations", auth) === true && canWrite("users", auth) === true
+        fc.integer({ min: 0, max: 960 }),
+        fc.integer({ min: 1, max: 10 }),
+        (uid, xp, level) => {
+          const auth: AuthContext = { uid, role: "student" }
+          const before: UserDoc = {
+            avatarClass: null,
+            xp: 0,
+            level: 1,
+            xpToNextLevel: 100,
+            processedEvalIds: [],
+            role: "student",
+          }
+          const after: UserDoc = {
+            ...before,
+            xp,
+            level,
+            xpToNextLevel: Math.max(0, level * 100 - xp),
+            processedEvalIds: ["session_1"],
+          }
+          return canUpdateUser(uid, auth, before, after)
         }
       )
     )
   })
 
-  it("para cualquier rol distinto de teacher, la escritura es rechazada en ambas colecciones", () => {
+  it("student puede setear avatarClass una sola vez cuando es null", () => {
     fc.assert(
       fc.property(
         fc.string({ minLength: 1, maxLength: 28 }),
-        fc.constantFrom<Role>("student"),
-        (uid, role) => {
-          const auth: AuthContext = { uid, role }
-          return !canWrite("evaluations", auth) && !canWrite("users", auth)
+        fc.constantFrom(...PLAYABLE_CLASSES),
+        (uid, avatarClass) => {
+          const auth: AuthContext = { uid, role: "student" }
+          const before: UserDoc = { avatarClass: null }
+          const after: UserDoc = { avatarClass }
+          return canUpdateUser(uid, auth, before, after)
+        }
+      )
+    )
+  })
+
+  it("student no puede cambiar avatarClass si ya estaba definida", () => {
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 28 }),
+        fc.constantFrom(...PLAYABLE_CLASSES),
+        fc.constantFrom(...PLAYABLE_CLASSES),
+        (uid, originalClass, nextClass) => {
+          const auth: AuthContext = { uid, role: "student" }
+          const before: UserDoc = { avatarClass: originalClass }
+          const after: UserDoc = { avatarClass: nextClass }
+          return canUpdateUser(uid, auth, before, after) === false
+        }
+      )
+    )
+  })
+
+  it("student no puede setear avatarClass invalida", () => {
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 28 }),
+        fc.string().filter((v) => !PLAYABLE_CLASSES.includes(v as (typeof PLAYABLE_CLASSES)[number])),
+        (uid, invalidClass) => {
+          const auth: AuthContext = { uid, role: "student" }
+          const before: UserDoc = { avatarClass: null }
+          const after: UserDoc = { avatarClass: invalidClass }
+          return canUpdateUser(uid, auth, before, after) === false
+        }
+      )
+    )
+  })
+
+  it("teacher puede actualizar cualquier campo de users", () => {
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 28 }),
+        fc.string({ minLength: 1, maxLength: 28 }),
+        (teacherUid, targetUid) => {
+          const auth: AuthContext = { uid: teacherUid, role: "teacher" }
+          const before: UserDoc = { avatarClass: null, role: "student", displayName: "A", email: "a@a.com" }
+          const after: UserDoc = { avatarClass: "maga", role: "student", displayName: "B", email: "b@b.com" }
+          return canUpdateUser(targetUid, auth, before, after)
         }
       )
     )

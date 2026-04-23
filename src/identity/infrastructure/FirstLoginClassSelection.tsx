@@ -59,14 +59,21 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
                 onClick={() => setSelectedClass(option.key as PlayableAvatarClass)}
                 disabled={saving}
               >
+                {option.image && (
+                  <span className={styles.classPreview}>
+                    <img src={option.image} alt={option.label} loading="lazy" />
+                  </span>
+                )}
                 <span
                   className={styles.classGlyph}
                   style={{ background: option.gradient, boxShadow: `0 0 22px ${option.glow}` }}
                 >
                   {option.emoji}
                 </span>
-                <span className={styles.className}>{option.label}</span>
-                <span className={styles.classSubtitle}>{option.subtitle}</span>
+                <span className={styles.classMeta}>
+                  <span className={styles.className}>{option.label}</span>
+                  <span className={styles.classSubtitle}>{option.subtitle}</span>
+                </span>
               </button>
             )
           })}

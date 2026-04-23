@@ -21,6 +21,7 @@ export interface AvatarVisual {
   emoji: string
   gradient: string
   glow: string
+  image?: string
 }
 
 const LEGACY_AVATAR_VISUALS: Record<LegacyAvatarClass, AvatarVisual> = {
@@ -74,6 +75,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
     emoji: "🪓",
     gradient: "linear-gradient(135deg,#f97316,#dc2626)",
     glow: "rgba(249,115,22,0.45)",
+    image: "/characters/char7.jpg",
   },
   guerrero: {
     key: "guerrero",
@@ -82,6 +84,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
     emoji: "🛡️",
     gradient: "linear-gradient(135deg,#3b82f6,#1e3a8a)",
     glow: "rgba(59,130,246,0.45)",
+    image: "/characters/char4.jpg",
   },
   maga: {
     key: "maga",
@@ -90,6 +93,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
     emoji: "✨",
     gradient: "linear-gradient(135deg,#a855f7,#4c1d95)",
     glow: "rgba(168,85,247,0.45)",
+    image: "/characters/char1.jpg",
   },
   arquera: {
     key: "arquera",
@@ -98,6 +102,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
     emoji: "🏹",
     gradient: "linear-gradient(135deg,#22c55e,#166534)",
     glow: "rgba(34,197,94,0.45)",
+    image: "/characters/char2.jpg",
   },
   asesina: {
     key: "asesina",
@@ -106,6 +111,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
     emoji: "🗡️",
     gradient: "linear-gradient(135deg,#0f172a,#334155)",
     glow: "rgba(148,163,184,0.45)",
+    image: "/characters/char6.jpg",
   },
   paladin: {
     key: "paladin",
@@ -114,6 +120,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
     emoji: "🛡️",
     gradient: "linear-gradient(135deg,#fbbf24,#f59e0b)",
     glow: "rgba(251,191,36,0.5)",
+    image: "/characters/char5.jpg",
   },
   sacerdote: {
     key: "sacerdote",
@@ -122,6 +129,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
     emoji: "✚",
     gradient: "linear-gradient(135deg,#06b6d4,#0e7490)",
     glow: "rgba(6,182,212,0.45)",
+    image: "/characters/char3.jpg",
   },
 }
 

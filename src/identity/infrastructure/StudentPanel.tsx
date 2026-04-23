@@ -12,6 +12,7 @@ import { XPToast } from "../../gamification/infrastructure/XPToast"
 import { LevelUpModal } from "../../gamification/infrastructure/level-up/LevelUpModal"
 import EnemySprite from "../../academic/infrastructure/EnemySprite"
 import FirstLoginClassSelection from "./FirstLoginClassSelection"
+import { needsClassSelection } from "../application/onboardingGate"
 import styles from "./StudentPanel.module.css"
 
 
@@ -25,6 +26,7 @@ export default function StudentPanel() {
 
   useEffect(() => {
     if (!xpGainEvent) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setXpToast({ amount: xpGainEvent.gain, key: xpGainEvent.seq })
     setVictoryAnim(true)
     const t = setTimeout(() => setVictoryAnim(false), 3000)
@@ -33,6 +35,7 @@ export default function StudentPanel() {
 
   useEffect(() => {
     if (!levelUpEvent) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLevelUpModal(levelUpEvent)
   }, [levelUpEvent])
 
@@ -52,7 +55,7 @@ export default function StudentPanel() {
   )
 
   if (!userData) return <div className={styles.loading}>Cargando tu perfil…</div>
-  if (!userData.avatarClass) {
+  if (needsClassSelection(userData.avatarClass)) {
     return <FirstLoginClassSelection displayName={userData.displayName || user.email || "Aventurero"} />
   }
 
