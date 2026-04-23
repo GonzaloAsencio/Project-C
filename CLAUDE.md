@@ -26,7 +26,7 @@ The `src/` directory is split into three bounded contexts plus shared infrastruc
 
 - **`identity/`** — Auth (Firebase Auth adapter), user domain model (`User`, `AvatarClass`), login use case, `AuthUI` (login form), `StudentPanel` (student dashboard)
 - **`academic/`** — `Evaluation` domain entity, `ApproveEvaluation` use case, `UpdateGrade` use case, `AttendanceService`, `TeacherPanel`, `FirestoreEvalRepo`
-- **`gamification/`** — `PlayerProgress` domain entity (XP/level logic), `AddXP` use case (subscribes to `EvaluationApproved` event), `FirestoreProgressRepo`, `XPBar` component, `XPToast` (fixed toast shown on XP gain)
+- **`gamification/`** — `PlayerProgress` domain entity (XP/level logic), `AddXP` use case (subscribes to `EvaluationApproved` event), `FirestoreProgressRepo`, `XPBar`, `XPToast` (bottom-center toast on XP gain). Cinematic modals in subdirectories: `level-up/LevelUpModal` (triggered by `levelUpEvent`), `victory/VictoryModal` and `defeat/DefeatModal` (triggered by `overlay` state). All three modals use `framer-motion` `AnimatePresence` at `z-[400]`. `VictoryModal` reuses animation primitives (`RadialRays`, `Particles`, `Sparkles`) defined in `level-up/` — those files are shared, not level-up-exclusive.
 - **`shared/`** — `firebase.ts` (Firestore/Auth init), `AuthContext`, `EventBus`, `OutboxService`, `RouteGuard`, `services.ts` (singleton instances), `ErrorBoundary` (class component wrapping both panels), `LoadingScreen` (Suspense fallback), `useLogout` (signs out + redirects to `/login`)
 
 ### Event-driven XP flow (Outbox pattern)
@@ -74,7 +74,7 @@ A fifth collection `config/evalColumns` stores the active column definitions: `{
 ### Data-fetching hooks
 
 - **`useEvalColumns`** (`shared/`) — `onSnapshot` subscription to `config/evalColumns`. Returns `{ columns: EvalColumn[], loading }`. Falls back to `DEFAULT_COLUMNS` if the document doesn't exist. Used by both teacher and student views — always import `EvalColumn` and column data from here.
-- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) to trigger overlay animations and canvas-confetti. Also detects XP deltas via `prevXpRef` (initialized to `null` to skip the first snapshot) and emits `xpGainEvent: { gain: number; seq: number } | null` — `seq` increments on each gain so consumers can reliably react even when the delta amount repeats. Returns `overlay`, `victoryAnim`, `xpGainEvent`, and `columns`. Fills missing `gradesSummary` keys with `{ status: "Waiting", score: 0 }` defaults (not "Pending"). Exports `GradeEntry` and `UserDocument`.
+- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects grade-status transitions (`Pending → Victory/Defeat`) and sets `overlay: { type, label } | null`, which drives `VictoryModal` / `DefeatModal`. Detects XP delta via `prevXpRef` (null-initialized to skip first snapshot) and emits `xpGainEvent: { gain, seq } | null`. Detects level change via `prevLevelRef` (same null pattern) and emits `levelUpEvent: { prevLevel, nextLevel } | null`. Returns all of the above plus `victoryAnim`, `columns`. Fills missing `gradesSummary` keys with `{ status: "Waiting", score: 0 }` defaults. Exports `GradeEntry` and `UserDocument`.
 - **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`.
 - **`useActiveAttendanceSession`** (`identity/infrastructure/`) — subscribes to attendance docs with `selfRegistration == true` and filters client-side for today's date. Returns `{ session: ClassSession | null, isWithinWindow: boolean }`. The query **must** filter by `selfRegistration == true` (not by date range) — a date-range-only query gets rejected by Firestore security rules because it could return docs the student can't read.
 
@@ -132,6 +132,7 @@ Components use a mix of **Tailwind CSS v4** (utility classes) and **CSS Modules*
 
 - **react-router-dom v7** — `BrowserRouter`/`Routes`; `StudentPanel` and `TeacherPanel` are code-split via `lazy()` + `Suspense`.
 - **React 19** — `ref` is a plain prop (no `forwardRef`); `use()` replaces `useContext()`.
+- **framer-motion** — used for all cinematic modals (`LevelUpModal`, `VictoryModal`, `DefeatModal`); `AnimatePresence` handles enter/exit transitions.
 - **recharts** — used for charts in the teacher view.
 - **lucide-react** — icon library.
 - **canvas-confetti** — dynamically imported (`await import(...)`) on victory events to avoid bundle bloat.
