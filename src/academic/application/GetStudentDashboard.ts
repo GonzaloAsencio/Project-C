@@ -32,7 +32,7 @@ export class GetStudentDashboard {
 
   private async _getUser(uid: string): Promise<User> {
     const snap = await getDoc(doc(db, "users", uid))
-    const data = snap.data() as { email: string; role: Role; avatarClass: AvatarClass }
-    return new UserEntity(uid, data.email, data.role, data.avatarClass)
+    const data = snap.data() as { email: string; role: Role; avatarClass?: AvatarClass | null }
+    return new UserEntity(uid, data.email, data.role, data.avatarClass ?? null)
   }
 }

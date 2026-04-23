@@ -1,27 +1,16 @@
-import { cn } from "../../shared/cn"
 import type { AvatarClass } from "../domain/User"
-
-const AVATAR_EMOJI: Record<AvatarClass, string> = {
-  Sword: "⚔️", Axe: "🪓", Dagger: "🗡️", Bow: "🏹", Magic: "🔮",
-}
-
-const AVATAR_SUBTITLE: Record<AvatarClass, string> = {
-  Sword:  "Maestro de la Espada",
-  Axe:    "Berserker del Hacha",
-  Dagger: "Asesino Veloz",
-  Bow:    "Arquero de Élite",
-  Magic:  "Hechicero Arcano",
-}
+import { getAvatarVisual } from "../domain/avatarClasses"
 
 interface ProfileCardProps {
   name: string
-  avatarClass: AvatarClass
+  avatarClass: AvatarClass | null
   level: number
   currentXP: number
   xpToNextLevel: number
 }
 
 export default function ProfileCard({ name, avatarClass, level, currentXP, xpToNextLevel }: ProfileCardProps) {
+  const cfg = getAvatarVisual(avatarClass)
   const isMaxLevel = level >= 10
   const totalXPThisLevel = currentXP + xpToNextLevel
   const progressPercent = isMaxLevel ? 100 : Math.min(100, Math.round((currentXP / totalXPThisLevel) * 100))
@@ -34,14 +23,14 @@ export default function ProfileCard({ name, avatarClass, level, currentXP, xpToN
         <div
           className="w-10 h-10 rounded-full border border-[#c8aa6e]/50 flex items-center justify-center text-2xl shrink-0"
         >
-          {AVATAR_EMOJI[avatarClass]}
+          {cfg.emoji}
         </div>
         <div className="min-w-0">
           <p className="text-[#1e1b4b] font-bold text-base tracking-wide truncate leading-tight">
             {name}
           </p>
           <p className="text-[#c8aa6e] text-[11px] leading-tight mt-0.5 font-medium">
-            {AVATAR_SUBTITLE[avatarClass]}
+            {cfg.subtitle}
           </p>
         </div>
       </div>

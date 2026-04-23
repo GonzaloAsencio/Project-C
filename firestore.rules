@@ -6,6 +6,10 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "teacher";
     }
 
+    function isPlayableAvatarClass(value) {
+      return value in ['berserker', 'guerrero', 'maga', 'arquera', 'asesina', 'paladin', 'sacerdote'];
+    }
+
     // evaluations: teachers can read/write; students can only read their own
     match /evaluations/{evalId} {
       allow read: if request.auth != null
@@ -28,7 +32,7 @@ service cloud.firestore {
           request.auth.uid == uid
           || isTeacher()
         );
-      allow create: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && (request.auth.uid == uid || isTeacher());
       // Teachers can update/delete any user doc.
       // Students can update only XP-related fields on their own doc (needed for attendance self-registration).
       allow update: if request.auth != null
@@ -36,8 +40,18 @@ service cloud.firestore {
           isTeacher()
           || (
             request.auth.uid == uid
-            && request.resource.data.diff(resource.data).affectedKeys()
+            && (
+              request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['xp', 'level', 'xpToNextLevel', 'processedEvalIds'])
+              || (
+                request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatarClass'])
+                && (
+                  !("avatarClass" in resource.data)
+                  || resource.data.avatarClass == null
+                )
+                && isPlayableAvatarClass(request.resource.data.avatarClass)
+              )
+            )
           )
         );
       allow delete: if request.auth != null && isTeacher();

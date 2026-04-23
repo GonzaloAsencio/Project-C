@@ -15,12 +15,14 @@ import StudentRow from "./StudentRow"
 import AttendanceSession from "./AttendanceSession"
 import StudentDetailModal from "./StudentDetailModal"
 import type { CellState } from "./GradeCell"
+import { FirebaseAuthAdapter } from "../../identity/infrastructure/FirebaseAuthAdapter"
 import styles from "./TeacherPanel.module.css"
 
 type CellKey = string
 
 const CONFIG_DOC = doc(db, "config", "evalColumns")
 const updateGradeUC = new UpdateGrade()
+const authAdapter = new FirebaseAuthAdapter()
 
 type ConfirmAction =
   | { type: "bulk-reset"; col: EvalColumn }
@@ -42,6 +44,7 @@ export default function TeacherPanel() {
     filterText,
     setFilterText,
     loadMore,
+    refresh,
   } = useTeacherData()
   const { columns } = useEvalColumns()
 
@@ -66,6 +69,15 @@ export default function TeacherPanel() {
   const [editLabel, setEditLabel] = useState("")
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const [bulkingKey, setBulkingKey] = useState<string | null>(null)
+
+  // Student account creation state
+  const [showCreateStudent, setShowCreateStudent] = useState(false)
+  const [newStudentName, setNewStudentName] = useState("")
+  const [newStudentEmail, setNewStudentEmail] = useState("")
+  const [newStudentPassword, setNewStudentPassword] = useState("")
+  const [creatingStudent, setCreatingStudent] = useState(false)
+  const [createStudentError, setCreateStudentError] = useState<string | null>(null)
+  const [createStudentSuccess, setCreateStudentSuccess] = useState<string | null>(null)
 
   async function handleCreateSession() {
     if (!user) return
@@ -190,6 +202,31 @@ export default function TeacherPanel() {
     if (confirmAction.type === "delete-session") await handleDeleteSession(confirmAction.sessionId)
   }
 
+  async function handleCreateStudentAccount() {
+    if (!newStudentName.trim() || !newStudentEmail.trim() || !newStudentPassword.trim()) return
+    setCreatingStudent(true)
+    setCreateStudentError(null)
+    setCreateStudentSuccess(null)
+    try {
+      await authAdapter.createStudentByTeacher({
+        displayName: newStudentName.trim(),
+        email: newStudentEmail.trim(),
+        password: newStudentPassword,
+      })
+      await refresh()
+      setCreateStudentSuccess("Alumno creado. Elegira su clase en el primer login.")
+      setNewStudentName("")
+      setNewStudentEmail("")
+      setNewStudentPassword("")
+      setTimeout(() => setShowCreateStudent(false), 900)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo crear el alumno"
+      setCreateStudentError(message)
+    } finally {
+      setCreatingStudent(false)
+    }
+  }
+
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100svh", background: "#f8fafc", flexDirection: "column", gap: "1rem" }}>
       <div style={{ fontSize: "2.5rem" }}>⏳</div>
@@ -227,6 +264,72 @@ export default function TeacherPanel() {
         </div>
       )}
 
+      {showCreateStudent && (
+        <div className={styles.confirmBackdrop}>
+          <div className={styles.studentCreateBox}>
+            <h2 className={styles.studentCreateTitle}>Crear cuenta de alumno</h2>
+            <p className={styles.studentCreateText}>
+              El alumno recibira sus credenciales y elegira clase en su primer ingreso.
+            </p>
+            <div className={styles.studentCreateField}>
+              <label className={styles.sessionFormLabel}>Nombre</label>
+              <input
+                className={styles.sessionFormInput}
+                value={newStudentName}
+                onChange={(e) => setNewStudentName(e.target.value)}
+                placeholder="Nombre del alumno"
+                disabled={creatingStudent}
+              />
+            </div>
+            <div className={styles.studentCreateField}>
+              <label className={styles.sessionFormLabel}>Email</label>
+              <input
+                className={styles.sessionFormInput}
+                value={newStudentEmail}
+                onChange={(e) => setNewStudentEmail(e.target.value)}
+                placeholder="alumno@escuela.com"
+                type="email"
+                disabled={creatingStudent}
+              />
+            </div>
+            <div className={styles.studentCreateField}>
+              <label className={styles.sessionFormLabel}>Contrasena temporal</label>
+              <input
+                className={styles.sessionFormInput}
+                value={newStudentPassword}
+                onChange={(e) => setNewStudentPassword(e.target.value)}
+                placeholder="Minimo 6 caracteres"
+                type="password"
+                minLength={6}
+                disabled={creatingStudent}
+              />
+            </div>
+            {createStudentError && <p className={styles.studentCreateError}>⚠ {createStudentError}</p>}
+            {createStudentSuccess && <p className={styles.studentCreateSuccess}>✓ {createStudentSuccess}</p>}
+            <div className={styles.confirmActions}>
+              <button
+                className={styles.confirmCancel}
+                onClick={() => {
+                  setShowCreateStudent(false)
+                  setCreateStudentError(null)
+                  setCreateStudentSuccess(null)
+                }}
+                disabled={creatingStudent}
+              >
+                Cancelar
+              </button>
+              <button
+                className={styles.confirmOk}
+                onClick={handleCreateStudentAccount}
+                disabled={creatingStudent}
+              >
+                {creatingStudent ? "Creando..." : "Crear alumno"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {detailStudent && (
         <StudentDetailModal
           student={detailStudent}
@@ -240,6 +343,9 @@ export default function TeacherPanel() {
           <span className={styles.subtitle}>Gestión de evaluaciones en tiempo real</span>
         </div>
         <div className={styles.statsRow}>
+          <button className={styles.createStudentBtn} onClick={() => setShowCreateStudent(true)}>
+            + Crear alumno
+          </button>
           <span className={styles.statChip}>👥 {students.length} alumno{students.length !== 1 ? "s" : ""}{hasMore ? "+" : ""}</span>
           <button className={styles.logoutBtn} onClick={logout}>Cerrar sesión</button>
         </div>

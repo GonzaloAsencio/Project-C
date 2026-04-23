@@ -11,6 +11,7 @@ import { useStudentData } from "./useStudentData"
 import { XPToast } from "../../gamification/infrastructure/XPToast"
 import { LevelUpModal } from "../../gamification/infrastructure/level-up/LevelUpModal"
 import EnemySprite from "../../academic/infrastructure/EnemySprite"
+import FirstLoginClassSelection from "./FirstLoginClassSelection"
 import styles from "./StudentPanel.module.css"
 
 
@@ -51,6 +52,9 @@ export default function StudentPanel() {
   )
 
   if (!userData) return <div className={styles.loading}>Cargando tu perfil…</div>
+  if (!userData.avatarClass) {
+    return <FirstLoginClassSelection displayName={userData.displayName || user.email || "Aventurero"} />
+  }
 
   const xpToNext = userData.xpToNextLevel ?? (userData.level * 100 - userData.xp)
 

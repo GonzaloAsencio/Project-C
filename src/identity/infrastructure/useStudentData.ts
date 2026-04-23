@@ -17,7 +17,7 @@ export interface UserDocument {
   displayName: string
   email: string
   role: "student" | "teacher"
-  avatarClass: AvatarClass
+  avatarClass: AvatarClass | null
   level: number
   xp: number
   xpToNextLevel: number

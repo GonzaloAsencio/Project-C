@@ -1,23 +1,16 @@
 import { cn } from "../../shared/cn"
 import type { AvatarClass } from "../domain/User"
-
-const AVATAR_CONFIG: Record<AvatarClass, { emoji: string; subtitle: string; gradient: string; glow: string }> = {
-  Sword:  { emoji: "⚔️", subtitle: "Maestro de la Espada", gradient: "linear-gradient(135deg,#3b82f6,#1d4ed8)", glow: "rgba(59,130,246,0.4)" },
-  Axe:    { emoji: "🪓", subtitle: "Berserker del Hacha",  gradient: "linear-gradient(135deg,#ef4444,#b91c1c)", glow: "rgba(239,68,68,0.4)" },
-  Dagger: { emoji: "🗡️", subtitle: "Asesino Veloz",        gradient: "linear-gradient(135deg,#10b981,#065f46)", glow: "rgba(16,185,129,0.4)" },
-  Bow:    { emoji: "🏹", subtitle: "Arquero de Élite",     gradient: "linear-gradient(135deg,#f59e0b,#b45309)", glow: "rgba(245,158,11,0.4)" },
-  Magic:  { emoji: "🔮", subtitle: "Hechicero Arcano",     gradient: "linear-gradient(135deg,#a855f7,#7c3aed)", glow: "rgba(168,85,247,0.4)" },
-}
+import { getAvatarVisual } from "../domain/avatarClasses"
 
 interface AvatarDisplayProps {
   displayName: string
-  avatarClass: AvatarClass
+  avatarClass: AvatarClass | null
   isVictoryAnim: boolean
   isDungeon: boolean
 }
 
 export default function AvatarDisplay({ displayName, avatarClass, isVictoryAnim, isDungeon }: AvatarDisplayProps) {
-  const cfg = AVATAR_CONFIG[avatarClass] ?? AVATAR_CONFIG.Magic
+  const cfg = getAvatarVisual(avatarClass)
 
   return (
     <div className="relative flex items-center justify-center w-[320px] h-[320px] sm:w-[420px] sm:h-[420px]">
