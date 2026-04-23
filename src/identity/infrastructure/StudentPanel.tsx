@@ -1,47 +1,33 @@
 import { useEffect, useState } from "react"
 import clsx from "clsx"
 import { useAuth } from "../../shared/AuthContext"
-import { eventBus } from "../../shared/EventBus"
 import { useLogout } from "../../shared/useLogout"
-import EnemySprite from "../../academic/infrastructure/EnemySprite"
 import AvatarDisplay from "./AvatarDisplay"
 import ProfileCard from "./ProfileCard"
 import EvalList from "./EvalList"
 import EvalMissionSelector from "./EvalMissionSelector"
 import { AtmosphericBackground } from "./AtmosphericBackground"
 import { useStudentData } from "./useStudentData"
-import AttendanceRegistration from "./AttendanceRegistration"
 import { XPToast } from "../../gamification/infrastructure/XPToast"
 import { LevelUpModal } from "../../gamification/infrastructure/level-up/LevelUpModal"
-import { VictoryModal } from "../../gamification/infrastructure/victory/VictoryModal"
-import { DefeatModal } from "../../gamification/infrastructure/defeat/DefeatModal"
+import EnemySprite from "../../academic/infrastructure/EnemySprite"
 import styles from "./StudentPanel.module.css"
 
-interface EvaluationApprovedPayload { evalId: string; studentUid: string; xpReward: number }
 
 export default function StudentPanel() {
   const { user } = useAuth()
   const logout = useLogout()
-  const { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError, xpGainEvent, levelUpEvent } = useStudentData()
+  const { userData, grades, columns, snapshotError, xpGainEvent, levelUpEvent } = useStudentData()
   const [xpToast, setXpToast] = useState<{ amount: number; key: number } | null>(null)
   const [levelUpModal, setLevelUpModal] = useState<{ prevLevel: number; nextLevel: number } | null>(null)
-
-  useEffect(() => {
-    if (!user) return
-    async function handleEvaluationApproved(payload: EvaluationApprovedPayload) {
-      if (payload.studentUid !== user!.uid) return
-      setVictoryAnim(true)
-      const confetti = (await import("canvas-confetti")).default
-      confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } })
-      setTimeout(() => setVictoryAnim(false), 3000)
-    }
-    eventBus.on<EvaluationApprovedPayload>("EvaluationApproved", handleEvaluationApproved)
-    return () => eventBus.off<EvaluationApprovedPayload>("EvaluationApproved", handleEvaluationApproved)
-  }, [user])
+  const [victoryAnim, setVictoryAnim] = useState(false)
 
   useEffect(() => {
     if (!xpGainEvent) return
     setXpToast({ amount: xpGainEvent.gain, key: xpGainEvent.seq })
+    setVictoryAnim(true)
+    const t = setTimeout(() => setVictoryAnim(false), 3000)
+    return () => clearTimeout(t)
   }, [xpGainEvent])
 
   useEffect(() => {
@@ -72,25 +58,6 @@ export default function StudentPanel() {
     <div className={clsx("min-h-screen flex flex-col overflow-hidden relative", combatMode && styles.rootDungeon)}>
       <AtmosphericBackground />
 
-      {/* Victory banner */}
-      {victoryAnim && (
-        <div className={styles.victoryBanner} role="alert">
-          ¡Victoria! 🎉 +{userData.xp} XP
-        </div>
-      )}
-
-      {/* Victory/Defeat overlay */}
-      <VictoryModal
-        open={!!overlay && overlay.type === "victory"}
-        evalName={overlay?.label ?? ""}
-        onClose={() => setOverlay(null)}
-      />
-      <DefeatModal
-        open={!!overlay && overlay.type === "defeat"}
-        evalName={overlay?.label ?? ""}
-        onClose={() => setOverlay(null)}
-      />
-
       {/* Navbar */}
       <nav className={clsx(styles.navbar, combatMode && styles.navbarDungeon)}>
         <span className={styles.navbarBrand}>Project-C</span>
@@ -110,7 +77,7 @@ export default function StudentPanel() {
           {combatMode && pendingEvalKey && (
             <div className={styles.combatZone}>
               <span className={styles.combatTitle}>⚔ Modo Combate Activo</span>
-              <EnemySprite enemyType={pendingEvalKey} isDefeated={grades[pendingEvalKey]?.status === "Victory"} />
+              <EnemySprite enemyType={pendingEvalKey as "tp1" | "tp2" | "parcial1" | "parcial2"} isDefeated={grades[pendingEvalKey]?.status === "Victory"} />
             </div>
           )}
           <AvatarDisplay
@@ -130,7 +97,6 @@ export default function StudentPanel() {
             currentXP={userData.xp}
             xpToNextLevel={xpToNext}
           />
-          <AttendanceRegistration />
           <div className="flex-1 overflow-auto">
             <EvalList grades={grades} columns={columns} isDungeon={combatMode} />
           </div>
@@ -164,11 +130,10 @@ export default function StudentPanel() {
           currentXP={userData.xp}
           xpToNextLevel={xpToNext}
         />
-        <AttendanceRegistration />
         {combatMode && pendingEvalKey && (
           <div className={styles.combatZone}>
             <span className={styles.combatTitle}>⚔ Modo Combate Activo</span>
-            <EnemySprite enemyType={pendingEvalKey} isDefeated={grades[pendingEvalKey]?.status === "Victory"} />
+            <EnemySprite enemyType={pendingEvalKey as "tp1" | "tp2" | "parcial1" | "parcial2"} isDefeated={grades[pendingEvalKey]?.status === "Victory"} />
           </div>
         )}
         <AvatarDisplay

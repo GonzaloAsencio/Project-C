@@ -1,14 +1,9 @@
-import { doc, runTransaction, getDoc, setDoc } from "firebase/firestore"
+import { doc, runTransaction, getDoc } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import type { FirestoreEvalRepo } from "../infrastructure/FirestoreEvalRepo"
-import type { OutboxService } from "../../shared/OutboxService"
 
 export class ApproveEvaluation {
-  private outbox: OutboxService
-
-  constructor(_evalRepo: FirestoreEvalRepo, outbox: OutboxService) {
-    this.outbox = outbox
-  }
+  constructor(_evalRepo: FirestoreEvalRepo) {}
 
   async execute(evalId: string, score: number): Promise<void> {
     const evalData = await this._getEvalById(evalId)
@@ -31,16 +26,6 @@ export class ApproveEvaluation {
     })
 
     // Enqueue the domain event after successful write
-    const xpReward = type === "TP" ? 70 : 200
-    await this.outbox.enqueue({
-      type: "EvaluationApproved",
-      evalId,
-      studentUid,
-      evalType: type,
-      evalIndex: index,
-      score,
-      xpReward,
-    })
   }
 
   private async _getEvalById(

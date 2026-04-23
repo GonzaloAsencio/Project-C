@@ -2,7 +2,7 @@ import { useState } from "react"
 import clsx from "clsx"
 import { doc, setDoc, writeBatch, deleteField } from "firebase/firestore"
 import { db } from "../../shared/firebase"
-import { outboxService, attendanceService } from "../../shared/services"
+import { attendanceService } from "../../shared/services"
 import { UpdateGrade } from "../application/UpdateGrade"
 import { useLogout } from "../../shared/useLogout"
 import { useAuth } from "../../shared/AuthContext"
@@ -20,7 +20,7 @@ import styles from "./TeacherPanel.module.css"
 type CellKey = string
 
 const CONFIG_DOC = doc(db, "config", "evalColumns")
-const updateGradeUC = new UpdateGrade(outboxService)
+const updateGradeUC = new UpdateGrade()
 
 type ConfirmAction =
   | { type: "bulk-reset"; col: EvalColumn }

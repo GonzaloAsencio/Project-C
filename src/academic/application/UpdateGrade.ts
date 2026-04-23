@@ -1,6 +1,5 @@
 import { doc, runTransaction } from "firebase/firestore"
 import { db } from "../../shared/firebase"
-import type { OutboxService } from "../../shared/OutboxService"
 import type { EvaluationStatus } from "../domain/Evaluation"
 
 function toEvalKey(type: "TP" | "Parcial", index: number): string {
@@ -19,11 +18,7 @@ export function parseEvalId(evalId: string): { studentUid: string; type: "TP" | 
 }
 
 export class UpdateGrade {
-  private outbox: OutboxService
-
-  constructor(outbox: OutboxService) {
-    this.outbox = outbox
-  }
+  constructor() {}
 
   async execute(evalId: string, status: EvaluationStatus, score: number): Promise<void> {
     const meta = parseEvalId(evalId)
@@ -43,18 +38,5 @@ export class UpdateGrade {
       })
     })
 
-    // Only enqueue XP reward event when evaluation is approved (Victory)
-    if (status === "Victory") {
-      const xpReward = type === "TP" ? 70 : 200
-      await this.outbox.enqueue({
-        type: "EvaluationApproved",
-        evalId,
-        studentUid,
-        evalType: type,
-        evalIndex: index,
-        score,
-        xpReward,
-      })
-    }
   }
 }

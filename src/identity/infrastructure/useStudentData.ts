@@ -28,10 +28,6 @@ export interface StudentDataResult {
   userData: UserDocument | null
   grades: Record<string, GradeEntry>
   columns: EvalColumn[]
-  overlay: { type: "victory" | "defeat"; label: string } | null
-  setOverlay: (v: { type: "victory" | "defeat"; label: string } | null) => void
-  victoryAnim: boolean
-  setVictoryAnim: (v: boolean) => void
   snapshotError: string | null
   xpGainEvent: { gain: number; seq: number } | null
   levelUpEvent: { prevLevel: number; nextLevel: number } | null
@@ -41,12 +37,9 @@ export function useStudentData(): StudentDataResult {
   const { user } = useAuth()
   const { columns } = useEvalColumns()
   const [userData, setUserData] = useState<UserDocument | null>(null)
-  const [victoryAnim, setVictoryAnim] = useState(false)
-  const [overlay, setOverlay] = useState<{ type: "victory" | "defeat"; label: string } | null>(null)
   const [snapshotError, setSnapshotError] = useState<string | null>(null)
   const [xpGainEvent, setXpGainEvent] = useState<{ gain: number; seq: number } | null>(null)
   const [levelUpEvent, setLevelUpEvent] = useState<{ prevLevel: number; nextLevel: number } | null>(null)
-  const prevGradesRef = useRef<Record<string, GradeEntry>>({})
   const prevXpRef = useRef<number | null>(null)
   const prevLevelRef = useRef<number | null>(null)
   const xpSeqRef = useRef(0)
@@ -59,26 +52,7 @@ export function useStudentData(): StudentDataResult {
       (snap) => {
         if (snap.exists()) {
           const newData = snap.data() as UserDocument
-          const prev = prevGradesRef.current
           const next = newData.gradesSummary ?? {}
-
-          for (const col of columns) {
-            const prevStatus = prev[col.key]?.status
-            const nextStatus = next[col.key]?.status
-            if (prevStatus === "Pending" && nextStatus === "Victory") {
-              setOverlay({ type: "victory", label: col.label })
-              import("canvas-confetti").then((m) =>
-                m.default({ particleCount: 180, spread: 100, origin: { y: 0.5 } })
-              )
-              break
-            }
-            if (prevStatus === "Pending" && nextStatus === "Defeat") {
-              setOverlay({ type: "defeat", label: col.label })
-              break
-            }
-          }
-
-          prevGradesRef.current = next
 
           const newXp = newData.xp ?? 0
           if (prevXpRef.current !== null && newXp > prevXpRef.current) {
@@ -124,5 +98,5 @@ export function useStudentData(): StudentDataResult {
       ? Object.fromEntries(columns.map((c) => [c.key, { status: "Waiting" as EvaluationStatus, score: 0 }]))
       : rawGrades
 
-  return { userData, grades, columns, overlay, setOverlay, victoryAnim, setVictoryAnim, snapshotError, xpGainEvent, levelUpEvent }
+  return { userData, grades, columns, snapshotError, xpGainEvent, levelUpEvent }
 }

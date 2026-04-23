@@ -9,4 +9,5 @@ import { FirestoreProgressRepo } from "../gamification/infrastructure/FirestoreP
 import { AttendanceService } from "../academic/application/AttendanceService"
 
 export const outboxService = new OutboxService(db, eventBus)
-export const attendanceService = new AttendanceService(new FirestoreProgressRepo())
+export const progressRepo = new FirestoreProgressRepo()
+export const attendanceService = new AttendanceService(progressRepo)
