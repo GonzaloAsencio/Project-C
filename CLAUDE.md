@@ -24,8 +24,8 @@ This is a **React + TypeScript + Vite** app backed by **Firebase** (Auth + Fires
 
 The `src/` directory is split into three bounded contexts plus shared infrastructure:
 
-- **`identity/`** — Auth (Firebase Auth adapter), user domain model (`User`, `AvatarClass`), login use case, `AuthUI` (login form), `StudentPanel` (student dashboard)
-- **`academic/`** — `Evaluation` domain entity, `ApproveEvaluation` use case, `UpdateGrade` use case, `AttendanceService`, `TeacherPanel`, `FirestoreEvalRepo`, `EnemySprite` (animated combat-mode enemy with 4 types: `tp1` 👾, `tp2` 🤖, `parcial1` 💀, `parcial2` 🐉)
+- **`identity/`** — Auth (Firebase Auth adapter), user domain model (`User`, `AvatarClass`), login use case, `AuthUI` (login form), `StudentPanel` (student dashboard), `studentProvisioning.ts` (helpers to build initial user/eval docs for new students), `onboardingGate.ts` (predicates for post-login routing), Zod schemas (`loginSchema`, `registerSchema` with Spanish error messages → `LoginInput` / `RegisterInput` types), `FirstLoginClassSelection` (avatar carousel with particle effects)
+- **`academic/`** — `Evaluation` domain entity, `ApproveEvaluation` use case, `UpdateGrade` use case, `DeleteStudent` use case (atomic cleanup of user doc + evaluations + attendance refs + outbox), `AttendanceService`, `TeacherPanel`, `FirestoreEvalRepo`, `EnemySprite` (animated combat-mode enemy with 4 types: `tp1` 👾, `tp2` 🤖, `parcial1` 💀, `parcial2` 🐉)
 - **`gamification/`** — `PlayerProgress` domain entity (XP/level logic), `AddXP` use case (subscribes to `EvaluationApproved` event via `EventBus`), `FirestoreProgressRepo`, `XPBar`, `XPToast` (bottom-center toast on XP gain). Cinematic modals in subdirectories: `level-up/LevelUpModal` (triggered by `levelUpEvent` from `useStudentData`), `victory/VictoryModal` and `defeat/DefeatModal` (rendered via `createPortal` inside `EvalList`, triggered when student clicks "Ver resultado"). All three modals use `framer-motion` `AnimatePresence` at `z-[400]`. `VictoryModal` reuses animation primitives (`RadialRays`, `Particles`, `Sparkles`) defined in `level-up/` — those files are shared, not level-up-exclusive.
 - **`shared/`** — `firebase.ts` (Firestore/Auth init), `AuthContext`, `EventBus`, `OutboxService`, `RouteGuard`, `services.ts` (singleton instances), `ErrorBoundary` (class component wrapping both panels), `LoadingScreen` (Suspense fallback), `useLogout` (signs out + redirects to `/login`)
 
@@ -52,7 +52,9 @@ The `src/` directory is split into three bounded contexts plus shared infrastruc
 | `attendance/{classId}` | `date`, `createdBy`, `presentStudents[]`, `selfRegistration` (bool), `windowStart?` (Timestamp), `windowEnd?` (Timestamp) |
 | `outbox/{id}` | `type`, `payload`, `status` (`"pending"` \| `"processed"`), `createdAt` |
 
-Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parcial2` (dynamically extensible — see `useEvalColumns`). `AvatarClass` values: `"Sword"` | `"Axe"` | `"Dagger"` | `"Bow"` | `"Magic"` (each has an RPG subtitle displayed in `ProfileCard`).
+Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parcial2` (dynamically extensible — see `useEvalColumns`).
+
+`AvatarClass` is a union of **7 playable classes** (`"berserker"` | `"guerrero"` | `"maga"` | `"arquera"` | `"asesina"` | `"paladin"` | `"sacerdote"`) plus **5 legacy classes** (`"Sword"` | `"Axe"` | `"Dagger"` | `"Bow"` | `"Magic"`) kept for backwards compatibility. New students always get a playable class. `getAvatarVisual(avatarClass)` returns an `AvatarVisual` object (`key`, `label`, `subtitle`, `emoji`, `gradient`, `glow`, optional `image`/`icon`); `DEFAULT_AVATAR_CLASS` is `"maga"`. `PLAYABLE_AVATAR_CLASSES` is the authoritative array for the selection carousel and Firestore rules validation. The Firestore security rule (`isPlayableAvatarClass()`) validates against these 7 values and allows a student to set `avatarClass` **only once** (when `resource.data.avatarClass == null`).
 
 A fifth collection `config/evalColumns` stores the active column definitions: `{ columns: EvalColumn[] }` where `EvalColumn = { key, label, type: "TP"|"Parcial", index }`. Teachers can write it; any authenticated user can read it. `DEFAULT_COLUMNS` in `useEvalColumns.ts` is the in-memory fallback if the document doesn't exist yet.
 
@@ -78,7 +80,7 @@ A fifth collection `config/evalColumns` stores the active column definitions: `{
 
 - **`useEvalColumns`** (`shared/`) — `onSnapshot` subscription to `config/evalColumns`. Returns `{ columns: EvalColumn[], loading }`. Falls back to `DEFAULT_COLUMNS` if the document doesn't exist. Used by both teacher and student views — always import `EvalColumn` and column data from here.
 - **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects XP delta via `prevXpRef` (null-initialized to skip first snapshot) and emits `xpGainEvent: { gain, seq } | null`. Detects level change via `prevLevelRef` (same null pattern) and emits `levelUpEvent: { prevLevel, nextLevel } | null`. Returns `{ userData, grades, columns, snapshotError, xpGainEvent, levelUpEvent }`. When `gradesSummary` is completely empty (not partially filled), fills all columns with `{ status: "Waiting", score: 0 }` defaults — individual missing keys in a non-empty summary are not backfilled. Exports `GradeEntry` and `UserDocument`.
-- **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`.
+- **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`. Exposes `loadMore()` for pagination and `refresh()` to reset and re-fetch from page 1.
 - **`useActiveAttendanceSession`** (`identity/infrastructure/`) — subscribes to attendance docs with `selfRegistration == true` and filters client-side for today's date. Returns `{ session: ClassSession | null, isWithinWindow: boolean }`. The query **must** filter by `selfRegistration == true` (not by date range) — a date-range-only query gets rejected by Firestore security rules because it could return docs the student can't read.
 
 ### StudentPanel layout
@@ -129,9 +131,22 @@ Students can update only `xp`, `level`, `xpToNextLevel`, `processedEvalIds` on t
 
 `main.tsx` wires the app at startup (module scope, not inside a component): registers the `AddXP` handler on `EventBus`, and attaches an `online` event listener that calls `outboxService.recoverPending()` to drain any stale outbox entries. Both registrations happen once per page load.
 
+### Student provisioning
+
+`studentProvisioning.ts` (`identity/application/`) exports helpers used by `TeacherPanel` when creating a new student account:
+- `buildStudentUserDoc(uid, displayName, email)` — initial user doc (role `"student"`, xp 0, level 1, xpToNextLevel 100, `avatarClass: null`)
+- `buildStudentEvaluationDocs(uid, columns)` — seeds one eval doc per active column with `status: "Pending"`, `score: 0`
+- `isValidTemporaryPassword(password)` — validates the temp password the teacher assigns (min 6 chars)
+
+New students have `avatarClass: null` until `FirstLoginClassSelection` completes. `onboardingGate.ts` exports:
+- `needsClassSelection(user)` — `true` when `avatarClass` is null
+- `canEnterStudentPanel(user)` — `true` when `avatarClass` is set
+
+`RouteGuard` uses these predicates to intercept post-login navigation and redirect to `/select-class` if onboarding is incomplete.
+
 ### Routing & auth
 
-`RouteGuard` reads `user.role` from `AuthContext` and redirects if the role doesn't match. Roles: `"student"` → `/student`, `"teacher"` → `/teacher`. Both panel routes are wrapped in `ErrorBoundary` and lazy-loaded with `LoadingScreen` as the Suspense fallback.
+`RouteGuard` reads `user.role` from `AuthContext` and redirects if the role doesn't match. Roles: `"student"` → `/student`, `"teacher"` → `/teacher`. Both panel routes are wrapped in `ErrorBoundary` and lazy-loaded with `LoadingScreen` as the Suspense fallback. Students with `avatarClass: null` are redirected to `/select-class` (handled via `onboardingGate`).
 
 ### Styling
 
