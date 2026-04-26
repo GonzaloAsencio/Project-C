@@ -22,6 +22,8 @@ export interface AvatarVisual {
   gradient: string
   glow: string
   image?: string
+  /** SVG or PNG path used as the class emblem (shown in avatar circle instead of emoji) */
+  icon?: string
 }
 
 const LEGACY_AVATAR_VISUALS: Record<LegacyAvatarClass, AvatarVisual> = {
@@ -118,9 +120,10 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
     label: "Paladin",
     subtitle: "Defensa sagrada del equipo",
     emoji: "🛡️",
-    gradient: "linear-gradient(135deg,#fbbf24,#f59e0b)",
-    glow: "rgba(251,191,36,0.5)",
-    image: "/characters/char5.jpg",
+    gradient: "linear-gradient(135deg,#e8d5a3,#c9a227,#7b5e1a)",
+    glow: "rgba(201,162,39,0.55)",
+    image: "/characters/paladin.png",
+    icon: "/characters/paladin-emblem.svg",
   },
   sacerdote: {
     key: "sacerdote",

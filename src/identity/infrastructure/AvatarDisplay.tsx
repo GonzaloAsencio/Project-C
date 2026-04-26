@@ -37,7 +37,7 @@ export default function AvatarDisplay({ displayName, avatarClass, isVictoryAnim,
       <div className="absolute w-3 h-3 bg-indigo/20 rotate-45 bottom-14 left-20" />
       <div className="absolute w-5 h-5 bg-lavender/60 rotate-45 top-28 left-10" />
 
-      {/* Avatar circle + emoji */}
+      {/* Avatar circle + class emblem or emoji */}
       <div className="relative z-10 flex flex-col items-center gap-3">
         <div
           className={cn(
