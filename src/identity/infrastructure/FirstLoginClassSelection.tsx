@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight, X } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useAuth } from "../../shared/AuthContext"
 import { FirebaseAuthAdapter } from "./FirebaseAuthAdapter"
 import {
@@ -110,9 +110,6 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
         </div>
       )}
       <div className={styles.panel}>
-        <button type="button" className={styles.closeBtn} aria-label="Cerrar seleccion de clase">
-          <X size={20} />
-        </button>
 
         <div className={styles.bannerStage}>
           {visibleOptions.map((option) => {
