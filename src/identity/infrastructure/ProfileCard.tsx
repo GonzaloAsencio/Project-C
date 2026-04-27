@@ -23,10 +23,8 @@ export default function ProfileCard({ name, avatarClass, level, currentXP, xpToN
         <div
           className="w-14 h-14 rounded-full border border-[#c8aa6e]/50 flex items-center justify-center text-2xl shrink-0"
         >
-          {cfg.icon ? (
+          {cfg.icon && (
             <img src={cfg.icon} alt={cfg.label} className="w-full h-full object-contain" />
-          ) : (
-            cfg.emoji
           )}
         </div>
         <div className="min-w-0">

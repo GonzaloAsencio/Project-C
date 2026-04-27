@@ -28,7 +28,7 @@ export default function AvatarHeader({
           style={{ "--avatar-gradient": cfg.gradient } as React.CSSProperties}
           aria-label={`Avatar clase ${avatarClass}`}
         >
-          {cfg.emoji}
+          {cfg.icon && <img src={cfg.icon} alt={cfg.label} className="w-full h-full object-contain" />}
         </div>
       </div>
       <span className={clsx(styles.name, isDungeon && styles.nameDungeon)}>
@@ -38,7 +38,7 @@ export default function AvatarHeader({
         className={styles.classBadge}
         style={{ "--avatar-gradient": cfg.gradient } as React.CSSProperties}
       >
-        {cfg.emoji} {avatarClass}
+        {cfg.label}
       </span>
     </div>
   )
