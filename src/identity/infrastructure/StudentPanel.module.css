@@ -49,7 +49,7 @@
 .navbarBrand {
   font-size: 1rem;
   font-weight: 800;
-  color: #1e1b4b;
+  color: #443a22;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -57,20 +57,85 @@
 
 .navbarDungeon .navbarBrand { color: #f1f5f9; }
 
-.logoutBtn {
-  padding: 0.4rem 1rem;
-  border-radius: 8px;
-  border: 1.5px solid rgba(168, 85, 247, 0.3);
-  background: transparent;
-  color: #a855f7;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* ── Settings gear ── */
+.settingsWrap {
+  position: relative;
 }
 
-.logoutBtn:hover { background: rgba(168, 85, 247, 0.1); border-color: #a855f7; }
-.navbarDungeon .logoutBtn { color: #c084fc; border-color: rgba(192, 132, 252, 0.3); }
+.settingsBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #443a22;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.settingsBtn:hover {
+  opacity: 1;
+  background: rgba(68, 58, 34, 0.07);
+}
+
+.settingsBtnDungeon {
+  color: #b5a882;
+}
+
+.settingsBtnDungeon:hover {
+  background: rgba(181, 168, 130, 0.1);
+}
+
+.settingsDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: #faf7ef;
+  border: 1px solid rgba(68, 58, 34, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  z-index: 100;
+}
+
+.settingsDropdownDungeon {
+  background: #1a150a;
+  border-color: rgba(68, 58, 34, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.settingsItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  border: none;
+  background: transparent;
+  color: #443a22;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  text-align: left;
+}
+
+.settingsItem:hover {
+  background: rgba(68, 58, 34, 0.07);
+}
+
+.settingsDropdownDungeon .settingsItem {
+  color: #b5a882;
+}
+
+.settingsDropdownDungeon .settingsItem:hover {
+  background: rgba(181, 168, 130, 0.08);
+}
 
 /* ── Victory banner ── */
 .victoryBanner {
