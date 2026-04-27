@@ -124,8 +124,7 @@ export default function AuthUI() {
 
         <div className={styles.content}>
           <div className={styles.heroText}>
-            <h1 className={styles.heroTitle}>Project-C</h1>
-            <p className={styles.heroSubtitle}>Tu aventura comienza aquí</p>
+            <h1 className={styles.heroTitle}>Paradigma De Programación</h1>
           </div>
 
           <motion.div

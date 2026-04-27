@@ -47,8 +47,10 @@
 .navbarDungeon {}
 
 .navbarBrand {
-  font-size: 1rem;
-  font-weight: 800;
+  font-family: 'Cinzel', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   color: #443a22;
   display: flex;
   align-items: center;

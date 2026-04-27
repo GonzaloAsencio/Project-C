@@ -80,7 +80,7 @@ export default function StudentPanel() {
 
       {/* Navbar */}
       <nav className={clsx(styles.navbar, combatMode && styles.navbarDungeon)}>
-        <span className={styles.navbarBrand}>Project-C</span>
+        <span className={styles.navbarBrand}>Paradigma De Programación</span>
         <div ref={settingsRef} className={styles.settingsWrap}>
           <button
             className={clsx(styles.settingsBtn, combatMode && styles.settingsBtnDungeon)}
