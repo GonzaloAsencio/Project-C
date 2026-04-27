@@ -39,19 +39,31 @@ export default function AvatarDisplay({ displayName, avatarClass, isVictoryAnim,
 
       {/* Avatar circle + class emblem or emoji */}
       <div className="relative z-10 flex flex-col items-center gap-3">
-        <div
-          className={cn(
-            "w-44 h-44 sm:w-52 sm:h-52 rounded-full flex items-center justify-center text-7xl sm:text-8xl shadow-2xl border-4 border-white/20 transition-transform",
-            isVictoryAnim && "animate-[victoryBounce_0.5s_cubic-bezier(0.34,1.56,0.64,1)_3]"
-          )}
-          style={{
-            background: cfg.gradient,
-            boxShadow: `0 0 60px ${cfg.glow}, 0 20px 40px rgba(0,0,0,0.2)`,
-          }}
-          aria-label={`Avatar clase ${avatarClass}`}
-        >
-          {cfg.emoji}
-        </div>
+        {cfg.image ? (
+          <img
+            src={cfg.image}
+            alt={cfg.label}
+            className={cn(
+              "w-44 sm:w-52 object-contain drop-shadow-2xl transition-transform",
+              isVictoryAnim && "animate-[victoryBounce_0.5s_cubic-bezier(0.34,1.56,0.64,1)_3]"
+            )}
+            aria-label={`Avatar clase ${avatarClass}`}
+          />
+        ) : (
+          <div
+            className={cn(
+              "w-44 h-44 sm:w-52 sm:h-52 rounded-full flex items-center justify-center text-7xl sm:text-8xl shadow-2xl border-4 border-white/20 transition-transform",
+              isVictoryAnim && "animate-[victoryBounce_0.5s_cubic-bezier(0.34,1.56,0.64,1)_3]"
+            )}
+            style={{
+              background: cfg.gradient,
+              boxShadow: `0 0 60px ${cfg.glow}, 0 20px 40px rgba(0,0,0,0.2)`,
+            }}
+            aria-label={`Avatar clase ${avatarClass}`}
+          >
+            {cfg.emoji}
+          </div>
+        )}
 
         <div className="text-center">
           <h2 className={cn("text-xl sm:text-2xl font-bold", isDungeon ? "text-white" : "text-[#1e1b4b]")}>

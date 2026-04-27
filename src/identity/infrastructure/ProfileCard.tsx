@@ -21,9 +21,13 @@ export default function ProfileCard({ name, avatarClass, level, currentXP, xpToN
       {/* ── Name row ── */}
       <div className="flex items-center gap-3">
         <div
-          className="w-10 h-10 rounded-full border border-[#c8aa6e]/50 flex items-center justify-center text-2xl shrink-0"
+          className="w-14 h-14 rounded-full border border-[#c8aa6e]/50 flex items-center justify-center text-2xl shrink-0"
         >
-          {cfg.emoji}
+          {cfg.icon ? (
+            <img src={cfg.icon} alt={cfg.label} className="w-full h-full object-contain" />
+          ) : (
+            cfg.emoji
+          )}
         </div>
         <div className="min-w-0">
           <p className="text-[#1e1b4b] font-bold text-base tracking-wide truncate leading-tight">

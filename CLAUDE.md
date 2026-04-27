@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Commands
 
 ```bash
@@ -9,337 +7,50 @@ npm run dev       # Start Vite dev server
 npm run build     # Type-check + production build (tsc -b && vite build)
 npm run lint      # ESLint
 npm run test      # Run all tests once (vitest --run)
+npx vitest --run <path>   # Run a single test file
 ```
 
-To run a single test file:
-```bash
-npx vitest --run src/gamification/domain/PlayerProgress.property.test.ts
-```
+## Stack
 
-## Architecture
+React 19 + TypeScript + Vite + Firebase (Auth + Firestore). Tailwind CSS v4 + CSS Modules co-located. Use `cn()` from `src/shared/cn.ts` for class merging.
 
-This is a **React + TypeScript + Vite** app backed by **Firebase** (Auth + Firestore). It's a gamified grade-tracking system for a classroom: teachers manage evaluations and attendance; students see their progress in a RPG-style UI.
+React 19: `ref` is a plain prop (no `forwardRef`); `use()` replaces `useContext()`.
 
-### Bounded contexts (DDD-style)
+Tests: Vitest + fast-check (property-based). Co-located with source files.
 
-The `src/` directory is split into three bounded contexts plus shared infrastructure:
+## Bounded contexts
 
-- **`identity/`** — Auth (Firebase Auth adapter), user domain model (`User`, `AvatarClass`), login use case, `AuthUI` (login form), `StudentPanel` (student dashboard), `studentProvisioning.ts` (helpers to build initial user/eval docs for new students), `onboardingGate.ts` (predicates for post-login routing), Zod schemas (`loginSchema`, `registerSchema` with Spanish error messages → `LoginInput` / `RegisterInput` types), `FirstLoginClassSelection` (avatar carousel with particle effects)
-- **`academic/`** — `Evaluation` domain entity, `ApproveEvaluation` use case, `UpdateGrade` use case, `DeleteStudent` use case (atomic cleanup of user doc + evaluations + attendance refs + outbox), `AttendanceService`, `TeacherPanel`, `FirestoreEvalRepo`, `EnemySprite` (animated combat-mode enemy with 4 types: `tp1` 👾, `tp2` 🤖, `parcial1` 💀, `parcial2` 🐉)
-- **`gamification/`** — `PlayerProgress` domain entity (XP/level logic), `AddXP` use case (subscribes to `EvaluationApproved` event via `EventBus`), `FirestoreProgressRepo`, `XPBar`, `XPToast` (bottom-center toast on XP gain). Cinematic modals in subdirectories: `level-up/LevelUpModal` (triggered by `levelUpEvent` from `useStudentData`), `victory/VictoryModal` and `defeat/DefeatModal` (rendered via `createPortal` inside `EvalList`, triggered when student clicks "Ver resultado"). All three modals use `framer-motion` `AnimatePresence` at `z-[400]`. `VictoryModal` reuses animation primitives (`RadialRays`, `Particles`, `Sparkles`) defined in `level-up/` — those files are shared, not level-up-exclusive.
-- **`shared/`** — `firebase.ts` (Firestore/Auth init), `AuthContext`, `EventBus`, `OutboxService`, `RouteGuard`, `services.ts` (singleton instances), `ErrorBoundary` (class component wrapping both panels), `LoadingScreen` (Suspense fallback), `useLogout` (signs out + redirects to `/login`)
+`src/` splits into three bounded contexts + shared:
+- `identity/` — Auth, user domain, StudentPanel, onboarding
+- `academic/` — Evaluation, TeacherPanel, AttendanceService
+- `gamification/` — XP/level logic, cinematic modals (LevelUpModal, VictoryModal, DefeatModal)
+- `shared/` — firebase.ts, AuthContext, EventBus, RouteGuard, services.ts
 
-### XP flow
+## Non-obvious decisions
 
-**Evaluation XP** is student-claimed, not automatically awarded on approval:
-1. Teacher approves → `ApproveEvaluation.execute()` writes atomically (evaluation + `gradesSummary` on user doc). No outbox enqueue.
-2. Student sees the grade change via `useStudentData` `onSnapshot` subscription.
-3. Student clicks "Ver resultado" in `EvalList` → calls `progressRepo.addXPIdempotent(uid, xp, evalId)` directly (Victory only). Triggers confetti + `VictoryModal`. Defeat only shows `DefeatModal`, no XP.
-4. Claimed eval keys are tracked in localStorage (`desafios_claimed_{uid}`) so the button becomes a badge after claiming.
+**XP is student-claimed, not auto-awarded.** Teacher approval only updates `gradesSummary`. The student clicks "Ver resultado" → `progressRepo.addXPIdempotent()` fires client-side (Victory only). No XP on approval, no XP on Defeat.
 
-**Attendance XP (+20)**: `AttendanceService.markPresent()` (teacher) and `markSelfPresent()` (student) both call `addXPIdempotent` with `evalId = "{classId}_{studentUid}"`. XP is never reverted on unmark/clear/delete.
+**Outbox infrastructure is dormant.** `OutboxService`, `EventBus`, `AddXP` are wired in `main.tsx` but `ApproveEvaluation` no longer enqueues events. The `online` listener calls `outboxService.recoverPending()` for stale docs only.
 
-**Idempotency**: `processedEvalIds[]` on the user doc (Firestore transaction) prevents double-awarding across both paths.
+**XP cap is exact by design.** 960 = 14 classes × 20 + 2 TPs × 70 + 2 Parcials × 200. `PlayerProgress` enforces this hard cap.
 
-**Outbox infrastructure** (`OutboxService`, `EventBus`, `AddXP`) still exists and is wired in `main.tsx`, but `ApproveEvaluation` no longer enqueues events. The `window.addEventListener("online", …)` calls `outboxService.recoverPending()` for any stale outbox docs.
+**`evalId` format:** `"{studentUid}_{tp|parcial}{index}"` — e.g. `"abc123_tp1"`. `UpdateGrade.parseEvalId()` decodes it.
 
-### Firestore data model
+**Firestore student attendance query must include `selfRegistration == true`.** A date-range-only query is rejected because it could hypothetically return docs the student can't read. See `useActiveAttendanceSession`.
 
-| Collection | Key fields |
-|---|---|
-| `users/{uid}` | `role`, `displayName`, `email`, `avatarClass`, `xp`, `level`, `xpToNextLevel`, `gradesSummary`, `processedEvalIds` |
-| `evaluations/{evalId}` | `studentUid`, `type` (`"TP"` \| `"Parcial"`), `index`, `status` (`"Victory"` \| `"Defeat"` \| `"Pending"` \| `"Waiting"`), `score` |
-| `attendance/{classId}` | `date`, `createdBy`, `presentStudents[]`, `selfRegistration` (bool), `windowStart?` (Timestamp), `windowEnd?` (Timestamp) |
-| `outbox/{id}` | `type`, `payload`, `status` (`"pending"` \| `"processed"`), `createdAt` |
+**`avatarClass` is set only once.** Firestore rule enforces write only when `resource.data.avatarClass == null`. New students start `null` until `FirstLoginClassSelection` completes.
 
-Eval keys in `gradesSummary` follow the pattern `tp1`, `tp2`, `parcial1`, `parcial2` (dynamically extensible — see `useEvalColumns`).
+**Singleton services:** Always import from `src/shared/services.ts` — never instantiate `FirestoreProgressRepo`, `AttendanceService`, or `OutboxService` directly in components.
 
-`AvatarClass` is a union of **7 playable classes** (`"berserker"` | `"guerrero"` | `"maga"` | `"arquera"` | `"asesina"` | `"paladin"` | `"sacerdote"`) plus **5 legacy classes** (`"Sword"` | `"Axe"` | `"Dagger"` | `"Bow"` | `"Magic"`) kept for backwards compatibility. New students always get a playable class. `getAvatarVisual(avatarClass)` returns an `AvatarVisual` object (`key`, `label`, `subtitle`, `emoji`, `gradient`, `glow`, optional `image`/`icon`); `DEFAULT_AVATAR_CLASS` is `"maga"`. `PLAYABLE_AVATAR_CLASSES` is the authoritative array for the selection carousel and Firestore rules validation. The Firestore security rule (`isPlayableAvatarClass()`) validates against these 7 values and allows a student to set `avatarClass` **only once** (when `resource.data.avatarClass == null`).
+**`GradeCell` auto-status on blur:** score ≥ 4 → `"Victory"`, score < 4 → `"Defeat"`. Manual override via status dropdown remains available.
 
-A fifth collection `config/evalColumns` stores the active column definitions: `{ columns: EvalColumn[] }` where `EvalColumn = { key, label, type: "TP"|"Parcial", index }`. Teachers can write it; any authenticated user can read it. `DEFAULT_COLUMNS` in `useEvalColumns.ts` is the in-memory fallback if the document doesn't exist yet.
+**`isDungeon`** (combat mode) is recomputed client-side: `columns.some(c => grades[c.key]?.status === "Pending")`. `"Waiting"` status does NOT trigger combat mode — only `"Pending"` does.
 
-`evalId` format: `"{studentUid}_{tp|parcial}{index}"` (e.g. `"abc123_tp1"`). `UpdateGrade.parseEvalId()` decodes this.
+**`useStudentData` XP/level events** use null-initialized refs (`prevXpRef`, `prevLevelRef`) to skip the first snapshot — events fire on changes, not on initial load.
 
-### XP rewards
+**Animation primitives** (`RadialRays`, `Particles`, `Sparkles`) live in `gamification/level-up/` but are shared across all three cinematic modals — not level-up-exclusive.
 
-| Event | XP |
-|---|---|
-| TP approved (`Victory`) | +70 |
-| Parcial approved (`Victory`) | +200 |
-| Attendance (present) | +20 |
-
-`PlayerProgress`: XP capped at 960, `level = floor(xp / 100) + 1`. Max level 10. The cap is exact by design: 14 classes × 20 + 2 TPs × 70 + 2 Parcials × 200 = 960.
-
-### Reconciliation
-
-`ReconcileGrades.execute(studentUid)` rebuilds `gradesSummary` from the `evaluations` collection if a discrepancy is detected. Called from `StudentDetailModal` when a teacher opens it. It is column-agnostic — it derives keys directly from the evaluation docs found, not from any hardcoded list.
-
-`useStudentData` also triggers reconciliation automatically on mount when `gradesSummary` is empty but `xp > 0` (indicates a sync gap), using a `reconciling` ref guard to run it only once.
-
-### Data-fetching hooks
-
-- **`useEvalColumns`** (`shared/`) — `onSnapshot` subscription to `config/evalColumns`. Returns `{ columns: EvalColumn[], loading }`. Falls back to `DEFAULT_COLUMNS` if the document doesn't exist. Used by both teacher and student views — always import `EvalColumn` and column data from here.
-- **`useStudentData`** (`identity/infrastructure/`) — `onSnapshot` live subscription to `users/{uid}`. Detects XP delta via `prevXpRef` (null-initialized to skip first snapshot) and emits `xpGainEvent: { gain, seq } | null`. Detects level change via `prevLevelRef` (same null pattern) and emits `levelUpEvent: { prevLevel, nextLevel } | null`. Returns `{ userData, grades, columns, snapshotError, xpGainEvent, levelUpEvent }`. When `gradesSummary` is completely empty (not partially filled), fills all columns with `{ status: "Waiting", score: 0 }` defaults — individual missing keys in a non-empty summary are not backfilled. Exports `GradeEntry` and `UserDocument`.
-- **`useTeacherData`** (`academic/infrastructure/`) — hybrid: paginated initial fetch (PAGE_SIZE=20, cursor via `startAfter`) + a separate `onSnapshot` that patches already-loaded rows in real time without fetching new pages. Client-side `filterText` filter over `displayName`/`email`. Exposes `loadMore()` for pagination and `refresh()` to reset and re-fetch from page 1.
-- **`useActiveAttendanceSession`** (`identity/infrastructure/`) — subscribes to attendance docs with `selfRegistration == true` and filters client-side for today's date. Returns `{ session: ClassSession | null, isWithinWindow: boolean }`. The query **must** filter by `selfRegistration == true` (not by date range) — a date-range-only query gets rejected by Firestore security rules because it could return docs the student can't read.
-
-### StudentPanel layout
-
-`StudentPanel` has two responsive layouts: desktop (`lg:` breakpoint, 3-column flex with absolute-positioned side panels) and mobile (single-column stack). Both share the same data from `useStudentData`. `victoryAnim` is local state in `StudentPanel`, set for 3 s when `xpGainEvent` fires — it animates `AvatarDisplay`. `AtmosphericBackground` (`identity/infrastructure/`) is a decorative animated layer rendered behind both layouts.
-
-`EvalMissionSelector` is **desktop-only** — it renders as the left panel in the 3-column desktop layout and is completely absent from the mobile stack. `EvalList` is present in both layouts and is the primary eval view for mobile users.
-
-### combatMode / isDungeon
-
-`GetStudentDashboard.execute()` returns `combatMode: true` when any evaluation has `status === "Pending"`. In practice, `StudentPanel` ignores this and recomputes the flag client-side using the live `columns` from `useStudentData`: `columns.some((c) => grades[c.key]?.status === "Pending")`.
-
-UI components (`EvalList`, `EvalMissionSelector`) receive both `columns: EvalColumn[]` and `isDungeon: boolean` as props. `isDungeon` is the presentation-layer name for `combatMode`. When true the student sees a dark dungeon theme; when false, a light parchment theme.
-
-`"Waiting"` status means the evaluation has not been administered yet (locked). It renders with a 🔒 icon and desaturated styling. It does not contribute to `isDungeon` — only `"Pending"` triggers combat mode.
-
-### Grade cell auto-status
-
-`GradeCell` derives the status automatically when the teacher changes the score (on blur): score ≥ 4 → `"Victory"`, score < 4 → `"Defeat"`. The status dropdown remains editable for manual overrides (e.g. resetting to `"Pending"`). The Firestore `create` rule on `evaluations/` allows teachers to create new eval docs (needed for new dynamic columns whose docs don't exist yet).
-
-### Shared utilities
-
-`src/shared/cn.ts` — thin wrapper around `clsx` for conditional CSS Module class composition.
-
-### Attendance module
-
-`AttendanceService` (`academic/application/`) supports:
-- Teacher: `createSession(teacherUid, date, selfRegistration?, windowStart?, windowEnd?)`, `markPresent/markAbsent`, `markAllPresent`, `clearAllPresent`, `deleteSession`
-- Student: `markSelfPresent` (uses `arrayUnion` — no read-before-write needed)
-
-Sessions with `selfRegistration: true` surface an attendance challenge card inside `EvalList` — it uses `useActiveAttendanceSession` and renders nothing when outside the time window or when there's no active session. (`AttendanceRegistration` exists as a standalone component but is not currently mounted in `StudentPanel`.)
-
-"✓ Todos" in `AttendanceSession` is disabled when `presentCount === students.length` (all already present). "✕ Limpiar" shows a `window.confirm` with "El XP ya otorgado no se revertirá" before executing — confirmation is handled in the component, not in the handler.
-
-`windowStart` / `windowEnd` are full datetimes (date + time combined), stored as Firestore Timestamps. Firestore security rules enforce the window server-side on student updates.
-
-### Firestore security rules gotcha
-
-Firestore rejects a student's list query if it could hypothetically return a document the student can't read. Concretely: a query filtered only by date range on `attendance/` fails because it might return docs with `selfRegistration: false`. Always add `where("selfRegistration", "==", true)` to any student-facing attendance query so Firestore can prove all returned docs are readable.
-
-Students can update only `xp`, `level`, `xpToNextLevel`, `processedEvalIds` on their own `users/{uid}` doc (needed for self-registration XP). The rule enforces this via `affectedKeys().hasOnly([...])`.
-
-### Singleton services
-
-`src/shared/services.ts` exports pre-wired singleton instances (`outboxService`, `progressRepo`, `attendanceService`). Import from there — don't instantiate these classes directly in components. Note: `main.tsx` also creates a separate `FirestoreProgressRepo` instance used solely for the `AddXP` EventBus handler.
-
-### App initialization (main.tsx)
-
-`main.tsx` wires the app at startup (module scope, not inside a component): registers the `AddXP` handler on `EventBus`, and attaches an `online` event listener that calls `outboxService.recoverPending()` to drain any stale outbox entries. Both registrations happen once per page load.
-
-### Student provisioning
-
-`studentProvisioning.ts` (`identity/application/`) exports helpers used by `TeacherPanel` when creating a new student account:
-- `buildStudentUserDoc(uid, displayName, email)` — initial user doc (role `"student"`, xp 0, level 1, xpToNextLevel 100, `avatarClass: null`)
-- `buildStudentEvaluationDocs(uid, columns)` — seeds one eval doc per active column with `status: "Pending"`, `score: 0`
-- `isValidTemporaryPassword(password)` — validates the temp password the teacher assigns (min 6 chars)
-
-New students have `avatarClass: null` until `FirstLoginClassSelection` completes. `onboardingGate.ts` exports:
-- `needsClassSelection(user)` — `true` when `avatarClass` is null
-- `canEnterStudentPanel(user)` — `true` when `avatarClass` is set
-
-`RouteGuard` uses these predicates to intercept post-login navigation and redirect to `/select-class` if onboarding is incomplete.
-
-### Routing & auth
-
-`RouteGuard` reads `user.role` from `AuthContext` and redirects if the role doesn't match. Roles: `"student"` → `/student`, `"teacher"` → `/teacher`. Both panel routes are wrapped in `ErrorBoundary` and lazy-loaded with `LoadingScreen` as the Suspense fallback. Students with `avatarClass: null` are redirected to `/select-class` (handled via `onboardingGate`).
-
-### Styling
-
-Components use a mix of **Tailwind CSS v4** (utility classes) and **CSS Modules** (`.module.css` co-located files). Tailwind is loaded via `@tailwindcss/vite` plugin; `tw-animate-css` adds animation utilities. `index.css` defines an RPG-themed palette via CSS custom properties (shadcn/ui-style `--background`, `--primary`, etc.) that the Tailwind theme inherits. Use `cn()` from `src/shared/cn.ts` (a `clsx` wrapper) to merge class names.
-
-### Key dependencies
-
-- **react-router-dom v7** — `BrowserRouter`/`Routes`; `StudentPanel` and `TeacherPanel` are code-split via `lazy()` + `Suspense`.
-- **React 19** — `ref` is a plain prop (no `forwardRef`); `use()` replaces `useContext()`.
-- **framer-motion** — used for all cinematic modals (`LevelUpModal`, `VictoryModal`, `DefeatModal`); `AnimatePresence` handles enter/exit transitions.
-- **recharts** — used for charts in the teacher view.
-- **lucide-react** — icon library.
-- **canvas-confetti** — dynamically imported (`await import(...)`) on victory events to avoid bundle bloat.
-
-### Testing
-
-Tests use **Vitest** with **fast-check** for property-based testing. Test files are co-located with the source they test (e.g. `PlayerProgress.property.test.ts` next to `PlayerProgress.ts`). Integration/Firestore rule tests live in `identity/infrastructure/FirestoreRules.property.test.ts`.
+**Attendance XP is never reverted.** Unmark/clear/delete does not subtract XP. The "✕ Limpiar" confirm dialog warns about this explicitly.
 
 <!-- autoskills:start -->
-
-Summary generated by `autoskills`. Check the full files inside `.claude/skills`.
-
-## Accessibility (a11y)
-
-Audit and improve web accessibility following WCAG 2.2 guidelines. Use when asked to "improve accessibility", "a11y audit", "WCAG compliance", "screen reader support", "keyboard navigation", or "make accessible".
-
-- `.claude/skills/accessibility/SKILL.md`
-- `.claude/skills/accessibility/references/A11Y-PATTERNS.md`: Practical, copy-paste-ready patterns for common accessibility requirements. Each pattern is self-contained and linked from the main [SKILL.md](../SKILL.md).
-- `.claude/skills/accessibility/references/WCAG.md`
-
-## Design Thinking
-
-Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beaut...
-
-- `.claude/skills/frontend-design/SKILL.md`
-
-## Node.js Backend Patterns
-
-Build production-ready Node.js backend services with Express/Fastify, implementing middleware patterns, error handling, authentication, database integration, and API design best practices. Use when creating Node.js servers, REST APIs, GraphQL backends, or microservices architectures.
-
-- `.claude/skills/nodejs-backend-patterns/SKILL.md`
-- `.claude/skills/nodejs-backend-patterns/references/advanced-patterns.md`: Advanced patterns for dependency injection, database integration, authentication, caching, and API response formatting.
-
-## Node.js Best Practices
-
-Node.js development principles and decision-making. Framework selection, async patterns, security, and architecture. Teaches thinking, not copying.
-
-- `.claude/skills/nodejs-best-practices/SKILL.md`
-
-## SEO optimization
-
-Optimize for search engine visibility and ranking. Use when asked to "improve SEO", "optimize for search", "fix meta tags", "add structured data", "sitemap optimization", or "search engine optimization".
-
-- `.claude/skills/seo/SKILL.md`
-
-## TypeScript Advanced Types
-
-Master TypeScript's advanced type system including generics, conditional types, mapped types, template literals, and utility types for building type-safe applications. Use when implementing complex type logic, creating reusable type utilities, or ensuring compile-time type safety in TypeScript pr...
-
-- `.claude/skills/typescript-advanced-types/SKILL.md`
-
-## React Composition Patterns
-
-Composition patterns for building flexible, maintainable React components. Avoid boolean prop proliferation by using compound components, lifting state, and composing internals. These patterns make codebases easier for both humans and AI agents to work with as they scale.
-
-- `.claude/skills/vercel-composition-patterns/SKILL.md`
-- `.claude/skills/vercel-composition-patterns/AGENTS.md`: **Version 1.0.0** Engineering January 2026
-- `.claude/skills/vercel-composition-patterns/README.md`: A structured repository for React composition patterns that scale. These patterns help avoid boolean prop proliferation by using compound components, lifting state, and composing internals.
-- `.claude/skills/vercel-composition-patterns/rules/_sections.md`: This file defines all sections, their ordering, impact levels, and descriptions. The section ID (in parentheses) is the filename prefix used to group rules.
-- `.claude/skills/vercel-composition-patterns/rules/_template.md`: Brief explanation of the rule and why it matters.
-- `.claude/skills/vercel-composition-patterns/rules/architecture-avoid-boolean-props.md`: Don't add boolean props like `isThread`, `isEditing`, `isDMThread` to customize component behavior. Each boolean doubles possible states and creates unmaintainable conditional logic. Use composition instead.
-- `.claude/skills/vercel-composition-patterns/rules/architecture-compound-components.md`: Structure complex components as compound components with a shared context. Each subcomponent accesses shared state via context, not props. Consumers compose the pieces they need.
-- `.claude/skills/vercel-composition-patterns/rules/patterns-children-over-render-props.md`: Use `children` for composition instead of `renderX` props. Children are more readable, compose naturally, and don't require understanding callback signatures.
-- `.claude/skills/vercel-composition-patterns/rules/patterns-explicit-variants.md`: Instead of one component with many boolean props, create explicit variant components. Each variant composes the pieces it needs. The code documents itself.
-- `.claude/skills/vercel-composition-patterns/rules/react19-no-forwardref.md`: In React 19, `ref` is now a regular prop (no `forwardRef` wrapper needed), and `use()` replaces `useContext()`.
-- `.claude/skills/vercel-composition-patterns/rules/state-context-interface.md`: Define a **generic interface** for your component context with three parts: can implement—enabling the same UI components to work with completely different state implementations.
-- `.claude/skills/vercel-composition-patterns/rules/state-decouple-implementation.md`: The provider component should be the only place that knows how state is managed. UI components consume the context interface—they don't know if state comes from useState, Zustand, or a server sync.
-- `.claude/skills/vercel-composition-patterns/rules/state-lift-state.md`: Move state management into dedicated provider components. This allows sibling components outside the main UI to access and modify state without prop drilling or awkward refs.
-
-## Vercel React Best Practices
-
-React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns. Triggers on tasks involving React components, Next.js pages, data fetching, bundle optimizati...
-
-- `.claude/skills/vercel-react-best-practices/SKILL.md`
-- `.claude/skills/vercel-react-best-practices/AGENTS.md`: **Version 1.0.0** Vercel Engineering January 2026
-- `.claude/skills/vercel-react-best-practices/README.md`: A structured repository for creating and maintaining React Best Practices optimized for agents and LLMs.
-- `.claude/skills/vercel-react-best-practices/rules/_sections.md`: This file defines all sections, their ordering, impact levels, and descriptions. The section ID (in parentheses) is the filename prefix used to group rules.
-- `.claude/skills/vercel-react-best-practices/rules/_template.md`: **Impact: MEDIUM (optional impact description)**
-- `.claude/skills/vercel-react-best-practices/rules/advanced-effect-event-deps.md`: Effect Event functions do not have a stable identity. Their identity intentionally changes on every render. Do not include the function returned by `useEffectEvent` in a `useEffect` dependency array. Keep the actual reactive values as dependencies and call the Effect Event from inside the effect...
-- `.claude/skills/vercel-react-best-practices/rules/advanced-event-handler-refs.md`: Store callbacks in refs when used in effects that shouldn't re-subscribe on callback changes.
-- `.claude/skills/vercel-react-best-practices/rules/advanced-init-once.md`: Do not put app-wide initialization that must run once per app load inside `useEffect([])` of a component. Components can remount and effects will re-run. Use a module-level guard or top-level init in the entry module instead.
-- `.claude/skills/vercel-react-best-practices/rules/advanced-use-latest.md`: Access latest values in callbacks without adding them to dependency arrays. Prevents effect re-runs while avoiding stale closures.
-- `.claude/skills/vercel-react-best-practices/rules/async-api-routes.md`: In API routes and Server Actions, start independent operations immediately, even if you don't await them yet.
-- `.claude/skills/vercel-react-best-practices/rules/async-cheap-condition-before-await.md`: When a branch uses `await` for a flag or remote value and also requires a **cheap synchronous** condition (local props, request metadata, already-loaded state), evaluate the cheap condition **first**. Otherwise you pay for the async call even when the compound condition can never be true.
-- `.claude/skills/vercel-react-best-practices/rules/async-defer-await.md`: Move `await` operations into the branches where they're actually used to avoid blocking code paths that don't need them.
-- `.claude/skills/vercel-react-best-practices/rules/async-dependencies.md`: For operations with partial dependencies, use `better-all` to maximize parallelism. It automatically starts each task at the earliest possible moment.
-- `.claude/skills/vercel-react-best-practices/rules/async-parallel.md`: When async operations have no interdependencies, execute them concurrently using `Promise.all()`.
-- `.claude/skills/vercel-react-best-practices/rules/async-suspense-boundaries.md`: Instead of awaiting data in async components before returning JSX, use Suspense boundaries to show the wrapper UI faster while data loads.
-- `.claude/skills/vercel-react-best-practices/rules/bundle-analyzable-paths.md`: Build tools work best when import and file-system paths are obvious at build time. If you hide the real path inside a variable or compose it too dynamically, the tool either has to include a broad set of possible files, warn that it cannot analyze the import, or widen file tracing to stay safe.
-- `.claude/skills/vercel-react-best-practices/rules/bundle-barrel-imports.md`: Import directly from source files instead of barrel files to avoid loading thousands of unused modules. **Barrel files** are entry points that re-export multiple modules (e.g., `index.js` that does `export * from './module'`).
-- `.claude/skills/vercel-react-best-practices/rules/bundle-conditional.md`: Load large data or modules only when a feature is activated.
-- `.claude/skills/vercel-react-best-practices/rules/bundle-defer-third-party.md`: Analytics, logging, and error tracking don't block user interaction. Load them after hydration.
-- `.claude/skills/vercel-react-best-practices/rules/bundle-dynamic-imports.md`: Use `next/dynamic` to lazy-load large components not needed on initial render.
-- `.claude/skills/vercel-react-best-practices/rules/bundle-preload.md`: Preload heavy bundles before they're needed to reduce perceived latency.
-- `.claude/skills/vercel-react-best-practices/rules/client-event-listeners.md`: Use `useSWRSubscription()` to share global event listeners across component instances.
-- `.claude/skills/vercel-react-best-practices/rules/client-localstorage-schema.md`: Add version prefix to keys and store only needed fields. Prevents schema conflicts and accidental storage of sensitive data.
-- `.claude/skills/vercel-react-best-practices/rules/client-passive-event-listeners.md`: Add `{ passive: true }` to touch and wheel event listeners to enable immediate scrolling. Browsers normally wait for listeners to finish to check if `preventDefault()` is called, causing scroll delay.
-- `.claude/skills/vercel-react-best-practices/rules/client-swr-dedup.md`: SWR enables request deduplication, caching, and revalidation across component instances.
-- `.claude/skills/vercel-react-best-practices/rules/js-batch-dom-css.md`: Avoid interleaving style writes with layout reads. When you read a layout property (like `offsetWidth`, `getBoundingClientRect()`, or `getComputedStyle()`) between style changes, the browser is forced to trigger a synchronous reflow.
-- `.claude/skills/vercel-react-best-practices/rules/js-cache-function-results.md`: Use a module-level Map to cache function results when the same function is called repeatedly with the same inputs during render.
-- `.claude/skills/vercel-react-best-practices/rules/js-cache-property-access.md`: Cache object property lookups in hot paths.
-- `.claude/skills/vercel-react-best-practices/rules/js-cache-storage.md`: **Incorrect (reads storage on every call):**
-- `.claude/skills/vercel-react-best-practices/rules/js-combine-iterations.md`: Multiple `.filter()` or `.map()` calls iterate the array multiple times. Combine into one loop.
-- `.claude/skills/vercel-react-best-practices/rules/js-early-exit.md`: Return early when result is determined to skip unnecessary processing.
-- `.claude/skills/vercel-react-best-practices/rules/js-flatmap-filter.md`: **Impact: LOW-MEDIUM (eliminates intermediate array)**
-- `.claude/skills/vercel-react-best-practices/rules/js-hoist-regexp.md`: Don't create RegExp inside render. Hoist to module scope or memoize with `useMemo()`.
-- `.claude/skills/vercel-react-best-practices/rules/js-index-maps.md`: Multiple `.find()` calls by the same key should use a Map.
-- `.claude/skills/vercel-react-best-practices/rules/js-length-check-first.md`: When comparing arrays with expensive operations (sorting, deep equality, serialization), check lengths first. If lengths differ, the arrays cannot be equal.
-- `.claude/skills/vercel-react-best-practices/rules/js-min-max-loop.md`: Finding the smallest or largest element only requires a single pass through the array. Sorting is wasteful and slower.
-- `.claude/skills/vercel-react-best-practices/rules/js-request-idle-callback.md`: **Impact: MEDIUM (keeps UI responsive during background tasks)**
-- `.claude/skills/vercel-react-best-practices/rules/js-set-map-lookups.md`: Convert arrays to Set/Map for repeated membership checks.
-- `.claude/skills/vercel-react-best-practices/rules/js-tosorted-immutable.md`: **Incorrect (mutates original array):**
-- `.claude/skills/vercel-react-best-practices/rules/rendering-activity.md`: Use React's `<Activity>` to preserve state/DOM for expensive components that frequently toggle visibility.
-- `.claude/skills/vercel-react-best-practices/rules/rendering-animate-svg-wrapper.md`: Many browsers don't have hardware acceleration for CSS3 animations on SVG elements. Wrap SVG in a `<div>` and animate the wrapper instead.
-- `.claude/skills/vercel-react-best-practices/rules/rendering-conditional-render.md`: Use explicit ternary operators (`? :`) instead of `&&` for conditional rendering when the condition can be `0`, `NaN`, or other falsy values that render.
-- `.claude/skills/vercel-react-best-practices/rules/rendering-content-visibility.md`: Apply `content-visibility: auto` to defer off-screen rendering.
-- `.claude/skills/vercel-react-best-practices/rules/rendering-hoist-jsx.md`: Extract static JSX outside components to avoid re-creation.
-- `.claude/skills/vercel-react-best-practices/rules/rendering-hydration-no-flicker.md`: When rendering content that depends on client-side storage (localStorage, cookies), avoid both SSR breakage and post-hydration flickering by injecting a synchronous script that updates the DOM before React hydrates.
-- `.claude/skills/vercel-react-best-practices/rules/rendering-hydration-suppress-warning.md`: In SSR frameworks (e.g., Next.js), some values are intentionally different on server vs client (random IDs, dates, locale/timezone formatting). For these *expected* mismatches, wrap the dynamic text in an element with `suppressHydrationWarning` to prevent noisy warnings. Do not use this to hide r...
-- `.claude/skills/vercel-react-best-practices/rules/rendering-resource-hints.md`: **Impact: HIGH (reduces load time for critical resources)**
-- `.claude/skills/vercel-react-best-practices/rules/rendering-script-defer-async.md`: **Impact: HIGH (eliminates render-blocking)**
-- `.claude/skills/vercel-react-best-practices/rules/rendering-svg-precision.md`: Reduce SVG coordinate precision to decrease file size. The optimal precision depends on the viewBox size, but in general reducing precision should be considered.
-- `.claude/skills/vercel-react-best-practices/rules/rendering-usetransition-loading.md`: Use `useTransition` instead of manual `useState` for loading states. This provides built-in `isPending` state and automatically manages transitions.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-defer-reads.md`: Don't subscribe to dynamic state (searchParams, localStorage) if you only read it inside callbacks.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-dependencies.md`: Specify primitive dependencies instead of objects to minimize effect re-runs.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-derived-state-no-effect.md`: If a value can be computed from current props/state, do not store it in state or update it in an effect. Derive it during render to avoid extra renders and state drift. Do not set state in effects solely in response to prop changes; prefer derived values or keyed resets instead.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-derived-state.md`: Subscribe to derived boolean state instead of continuous values to reduce re-render frequency.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-functional-setstate.md`: When updating state based on the current state value, use the functional update form of setState instead of directly referencing the state variable. This prevents stale closures, eliminates unnecessary dependencies, and creates stable callback references.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-lazy-state-init.md`: Pass a function to `useState` for expensive initial values. Without the function form, the initializer runs on every render even though the value is only used once.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-memo-with-default-value.md`: When memoized component has a default value for some non-primitive optional parameter, such as an array, function, or object, calling the component without that parameter results in broken memoization. This is because new value instances are created on every rerender, and they do not pass strict...
-- `.claude/skills/vercel-react-best-practices/rules/rerender-memo.md`: Extract expensive work into memoized components to enable early returns before computation.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-move-effect-to-event.md`: If a side effect is triggered by a specific user action (submit, click, drag), run it in that event handler. Do not model the action as state + effect; it makes effects re-run on unrelated changes and can duplicate the action.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-no-inline-components.md`: **Impact: HIGH (prevents remount on every render)**
-- `.claude/skills/vercel-react-best-practices/rules/rerender-simple-expression-in-memo.md`: When an expression is simple (few logical or arithmetical operators) and has a primitive result type (boolean, number, string), do not wrap it in `useMemo`. Calling `useMemo` and comparing hook dependencies may consume more resources than the expression itself.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-split-combined-hooks.md`: When a hook contains multiple independent tasks with different dependencies, split them into separate hooks. A combined hook reruns all tasks when any dependency changes, even if some tasks don't use the changed value.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-transitions.md`: Mark frequent, non-urgent state updates as transitions to maintain UI responsiveness.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-use-deferred-value.md`: When user input triggers expensive computations or renders, use `useDeferredValue` to keep the input responsive. The deferred value lags behind, allowing React to prioritize the input update and render the expensive result when idle.
-- `.claude/skills/vercel-react-best-practices/rules/rerender-use-ref-transient-values.md`: When a value changes frequently and you don't want a re-render on every update (e.g., mouse trackers, intervals, transient flags), store it in `useRef` instead of `useState`. Keep component state for UI; use refs for temporary DOM-adjacent values. Updating a ref does not trigger a re-render.
-- `.claude/skills/vercel-react-best-practices/rules/server-after-nonblocking.md`: Use Next.js's `after()` to schedule work that should execute after a response is sent. This prevents logging, analytics, and other side effects from blocking the response.
-- `.claude/skills/vercel-react-best-practices/rules/server-auth-actions.md`: **Impact: CRITICAL (prevents unauthorized access to server mutations)**
-- `.claude/skills/vercel-react-best-practices/rules/server-cache-lru.md`: **Implementation:**
-- `.claude/skills/vercel-react-best-practices/rules/server-cache-react.md`: Use `React.cache()` for server-side request deduplication. Authentication and database queries benefit most.
-- `.claude/skills/vercel-react-best-practices/rules/server-dedup-props.md`: **Impact: LOW (reduces network payload by avoiding duplicate serialization)**
-- `.claude/skills/vercel-react-best-practices/rules/server-hoist-static-io.md`: **Impact: HIGH (avoids repeated file/network I/O per request)**
-- `.claude/skills/vercel-react-best-practices/rules/server-no-shared-module-state.md`: For React Server Components and client components rendered during SSR, avoid using mutable module-level variables to share request-scoped data. Server renders can run concurrently in the same process. If one render writes to shared module state and another render reads it, you can get race condit...
-- `.claude/skills/vercel-react-best-practices/rules/server-parallel-fetching.md`: React Server Components execute sequentially within a tree. Restructure with composition to parallelize data fetching.
-- `.claude/skills/vercel-react-best-practices/rules/server-parallel-nested-fetching.md`: When fetching nested data in parallel, chain dependent fetches within each item's promise so a slow item doesn't block the rest.
-- `.claude/skills/vercel-react-best-practices/rules/server-serialization.md`: The React Server/Client boundary serializes all object properties into strings and embeds them in the HTML response and subsequent RSC requests. This serialized data directly impacts page weight and load time, so **size matters a lot**. Only pass fields that the client actually uses.
-
-## Vite
-
-Vite build tool configuration, plugin API, SSR, and Vite 8 Rolldown migration. Use when working with Vite projects, vite.config.ts, Vite plugins, or building libraries/SSR apps with Vite.
-
-- `.claude/skills/vite/SKILL.md`
-- `.claude/skills/vite/GENERATION.md`
-- `.claude/skills/vite/references/build-and-ssr.md`: Vite library mode, multi-page apps, JavaScript API, and SSR guidance
-- `.claude/skills/vite/references/core-config.md`: Vite configuration patterns using vite.config.ts
-- `.claude/skills/vite/references/core-features.md`: Vite-specific import patterns and runtime features
-- `.claude/skills/vite/references/core-plugin-api.md`: Vite plugin authoring with Vite-specific hooks
-- `.claude/skills/vite/references/environment-api.md`: Vite 6+ Environment API for multiple runtime environments
-- `.claude/skills/vite/references/rolldown-migration.md`: Vite 8 Rolldown bundler and Oxc transformer migration
-
-## Core
-
-Vitest fast unit testing framework powered by Vite with Jest-compatible API. Use when writing tests, mocking, configuring coverage, or working with test filtering and fixtures.
-
-- `.claude/skills/vitest/SKILL.md`
-- `.claude/skills/vitest/GENERATION.md`
-- `.claude/skills/vitest/references/advanced-environments.md`: Configure environments like jsdom, happy-dom for browser APIs
-- `.claude/skills/vitest/references/advanced-projects.md`: Multi-project configuration for monorepos and different test types
-- `.claude/skills/vitest/references/advanced-type-testing.md`: Test TypeScript types with expectTypeOf and assertType
-- `.claude/skills/vitest/references/advanced-vi.md`: vi helper for mocking, timers, utilities
-- `.claude/skills/vitest/references/core-cli.md`: Command line interface commands and options
-- `.claude/skills/vitest/references/core-config.md`: Configure Vitest with vite.config.ts or vitest.config.ts
-- `.claude/skills/vitest/references/core-describe.md`: describe/suite for grouping tests into logical blocks
-- `.claude/skills/vitest/references/core-expect.md`: Assertions with matchers, asymmetric matchers, and custom matchers
-- `.claude/skills/vitest/references/core-hooks.md`: beforeEach, afterEach, beforeAll, afterAll, and around hooks
-- `.claude/skills/vitest/references/core-test-api.md`: test/it function for defining tests with modifiers
-- `.claude/skills/vitest/references/features-concurrency.md`: Concurrent tests, parallel execution, and sharding
-- `.claude/skills/vitest/references/features-context.md`: Test context, custom fixtures with test.extend
-- `.claude/skills/vitest/references/features-coverage.md`: Code coverage with V8 or Istanbul providers
-- `.claude/skills/vitest/references/features-filtering.md`: Filter tests by name, file patterns, and tags
-- `.claude/skills/vitest/references/features-mocking.md`: Mock functions, modules, timers, and dates with vi utilities
-- `.claude/skills/vitest/references/features-snapshots.md`: Snapshot testing with file, inline, and file snapshots
-
 <!-- autoskills:end -->

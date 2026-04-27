@@ -122,8 +122,8 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
     emoji: "🛡️",
     gradient: "linear-gradient(135deg,#e8d5a3,#c9a227,#7b5e1a)",
     glow: "rgba(201,162,39,0.55)",
-    image: "/characters/paladin.png",
-    icon: "/characters/paladin-emblem.svg",
+    image: "/characters/paladin-class.png",
+    icon: "/class-icon/paladin-class-icon.png",
   },
   sacerdote: {
     key: "sacerdote",
