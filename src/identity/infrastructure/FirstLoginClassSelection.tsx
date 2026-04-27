@@ -14,12 +14,34 @@ interface FirstLoginClassSelectionProps {
   displayName: string
 }
 
+// Returns the keys of banners that will "wrap around" from one extreme to the other
+// so their transition can be suppressed (invisible teleport) instead of flying across.
+function getWrappingKeys(
+  direction: 1 | -1,
+  jumpSize: number,
+  fromIndex: number,
+  opts: ReadonlyArray<{ key: string }>
+): string[] {
+  const keys: string[] = []
+  for (let i = 0; i < jumpSize; i++) {
+    const pos = direction > 0 ? -3 + i : 3 - i
+    const idx = (fromIndex + pos + opts.length) % opts.length
+    keys.push(opts[idx].key)
+  }
+  return keys
+}
+
+function scheduleTransitionRestore(restore: () => void) {
+  requestAnimationFrame(() => requestAnimationFrame(restore))
+}
+
 export default function FirstLoginClassSelection({ displayName }: FirstLoginClassSelectionProps) {
   const { user } = useAuth()
   const [selectedIndex, setSelectedIndex] = useState(2)
   const [phase, setPhase] = useState<"idle" | "saving" | "success">("idle")
   const [error, setError] = useState<string | null>(null)
   const [sparkles, setSparkles] = useState<Array<{ id: number; x: number; y: number }>>([])
+  const [suppressedKeys, setSuppressedKeys] = useState<ReadonlySet<string>>(new Set())
 
   const options = useMemo(() => PLAYABLE_AVATAR_CLASSES.map((cls) => getAvatarVisual(cls)), [])
   const selectedClass = options[selectedIndex]?.key
@@ -48,13 +70,19 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
 
   const handlePrevious = useCallback(() => {
     if (phase !== "idle") return
+    const keysToSuppress = getWrappingKeys(-1, 1, selectedIndex, options)
+    setSuppressedKeys(new Set(keysToSuppress))
     setSelectedIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1))
-  }, [options.length, phase])
+    scheduleTransitionRestore(() => setSuppressedKeys(new Set()))
+  }, [options, phase, selectedIndex])
 
   const handleNext = useCallback(() => {
     if (phase !== "idle") return
+    const keysToSuppress = getWrappingKeys(1, 1, selectedIndex, options)
+    setSuppressedKeys(new Set(keysToSuppress))
     setSelectedIndex((prev) => (prev < options.length - 1 ? prev + 1 : 0))
-  }, [options.length, phase])
+    scheduleTransitionRestore(() => setSuppressedKeys(new Set()))
+  }, [options, phase, selectedIndex])
 
   const handleSpark = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     if (phase !== "idle") return
@@ -129,37 +157,52 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
                 : Math.sign(option.position)
                   * (firstOffset + (absPosition - 1) * stackedOffset)
             const translateY = absPosition <= 1 ? 54 : 54 - (absPosition - 1) * 42
+            const isWrapping = suppressedKeys.has(option.key)
 
             return (
-              <article
-                key={`${option.key}_${option.position}`}
-                className={isCenter ? `${styles.banner} ${styles.bannerCenter}` : styles.banner}
-                data-position={option.position}
+              <div
+                key={option.key}
+                className={styles.bannerPos}
                 style={{
                   width: `${width}px`,
-                  height: `${height}px`,
                   marginLeft: `${-width / 2}px`,
                   transform: `translateX(${translateX}px) translateY(${translateY}px)`,
                   zIndex: 10 - absPosition,
-                  opacity: 1 - absPosition * 0.05,
+                  opacity: isWrapping ? 0 : 1 - absPosition * 0.05,
+                  transition: isWrapping ? "none" : undefined,
                 }}
-                onClick={() => {
-                  if (phase !== "idle") return
-                  if (option.position === 0) return
-                  const index = (selectedIndex + option.position + options.length) % options.length
-                  setSelectedIndex(index)
-                }}
-                aria-hidden={!isCenter}
               >
-                {option.image && (
-                  <img className={styles.bannerImage} src={option.image} alt={option.label} loading="lazy" />
-                )}
-                <div className={styles.bannerShade} />
-                <div className={styles.bannerMeta}>
-                  <span className={styles.className}>{option.label}</span>
-                  <span className={styles.classSubtitle}>{option.subtitle}</span>
-                </div>
-              </article>
+                <article
+                  className={isCenter ? `${styles.banner} ${styles.bannerCenter}` : styles.banner}
+                  data-position={option.position}
+                  style={{
+                    height: `${height}px`,
+                    animationDuration: `${isCenter ? 4 : 4 + absPosition * 0.6}s`,
+                    animationDelay: `${-absPosition * 0.9}s`,
+                  }}
+                  onClick={() => {
+                    if (phase !== "idle") return
+                    if (option.position === 0) return
+                    const jumpDir = Math.sign(option.position) as 1 | -1
+                    const jumpSize = Math.abs(option.position)
+                    const keysToSuppress = getWrappingKeys(jumpDir, jumpSize, selectedIndex, options)
+                    setSuppressedKeys(new Set(keysToSuppress))
+                    const index = (selectedIndex + option.position + options.length) % options.length
+                    setSelectedIndex(index)
+                    scheduleTransitionRestore(() => setSuppressedKeys(new Set()))
+                  }}
+                  aria-hidden={!isCenter}
+                >
+                  {option.image && (
+                    <img className={styles.bannerImage} src={option.image} alt={option.label} loading="lazy" />
+                  )}
+                  <div className={styles.bannerShade} />
+                  <div className={styles.bannerMeta}>
+                    <span className={styles.className}>{option.label}</span>
+                    <span className={styles.classSubtitle}>{option.subtitle}</span>
+                  </div>
+                </article>
+              </div>
             )
           })}
         </div>
