@@ -27,20 +27,20 @@ export function AtmosphericBackground() {
         viewBox="0 0 1200 1200"
         fill="none"
       >
-        <circle cx="600" cy="600" r="550" stroke="var(--indigo)" strokeWidth="1" strokeOpacity="0.08" strokeDasharray="8 12" />
-        <circle cx="600" cy="600" r="450" stroke="var(--indigo)" strokeWidth="1" strokeOpacity="0.06" />
-        <circle cx="600" cy="600" r="350" stroke="var(--indigo)" strokeWidth="0.75" strokeOpacity="0.05" strokeDasharray="4 8" />
-        <circle cx="600" cy="600" r="250" stroke="var(--indigo)" strokeWidth="0.5" strokeOpacity="0.04" />
-        <path d="M600 100 L1100 600 L600 1100 L100 600 Z" stroke="var(--indigo)" strokeWidth="1" strokeOpacity="0.05" fill="none" />
-        <path d="M600 200 L1000 600 L600 1000 L200 600 Z" stroke="var(--indigo)" strokeWidth="0.75" strokeOpacity="0.04" fill="none" />
-        <line x1="600" y1="50" x2="600" y2="150" stroke="var(--indigo)" strokeWidth="1" strokeOpacity="0.08" />
-        <line x1="600" y1="1050" x2="600" y2="1150" stroke="var(--indigo)" strokeWidth="1" strokeOpacity="0.08" />
-        <line x1="50" y1="600" x2="150" y2="600" stroke="var(--indigo)" strokeWidth="1" strokeOpacity="0.08" />
-        <line x1="1050" y1="600" x2="1150" y2="600" stroke="var(--indigo)" strokeWidth="1" strokeOpacity="0.08" />
-        <circle cx="600" cy="50" r="3" fill="var(--indigo)" fillOpacity="0.12" />
-        <circle cx="600" cy="1150" r="3" fill="var(--indigo)" fillOpacity="0.12" />
-        <circle cx="50" cy="600" r="3" fill="var(--indigo)" fillOpacity="0.12" />
-        <circle cx="1150" cy="600" r="3" fill="var(--indigo)" fillOpacity="0.12" />
+        <circle cx="600" cy="600" r="550" stroke="#443a22" strokeWidth="1" strokeOpacity="0.08" strokeDasharray="8 12" />
+        <circle cx="600" cy="600" r="450" stroke="#443a22" strokeWidth="1" strokeOpacity="0.06" />
+        <circle cx="600" cy="600" r="350" stroke="#443a22" strokeWidth="0.75" strokeOpacity="0.05" strokeDasharray="4 8" />
+        <circle cx="600" cy="600" r="250" stroke="#443a22" strokeWidth="0.5" strokeOpacity="0.04" />
+        <path d="M600 100 L1100 600 L600 1100 L100 600 Z" stroke="#443a22" strokeWidth="1" strokeOpacity="0.05" fill="none" />
+        <path d="M600 200 L1000 600 L600 1000 L200 600 Z" stroke="#443a22" strokeWidth="0.75" strokeOpacity="0.04" fill="none" />
+        <line x1="600" y1="50" x2="600" y2="150" stroke="#443a22" strokeWidth="1" strokeOpacity="0.08" />
+        <line x1="600" y1="1050" x2="600" y2="1150" stroke="#443a22" strokeWidth="1" strokeOpacity="0.08" />
+        <line x1="50" y1="600" x2="150" y2="600" stroke="#443a22" strokeWidth="1" strokeOpacity="0.08" />
+        <line x1="1050" y1="600" x2="1150" y2="600" stroke="#443a22" strokeWidth="1" strokeOpacity="0.08" />
+        <circle cx="600" cy="50" r="3" fill="#443a22" fillOpacity="0.12" />
+        <circle cx="600" cy="1150" r="3" fill="#443a22" fillOpacity="0.12" />
+        <circle cx="50" cy="600" r="3" fill="#443a22" fillOpacity="0.12" />
+        <circle cx="1150" cy="600" r="3" fill="#443a22" fillOpacity="0.12" />
       </svg>
 
       {/* Color blurs */}

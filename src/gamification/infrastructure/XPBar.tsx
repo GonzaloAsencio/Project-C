@@ -30,7 +30,7 @@ export default function XPBar({ currentXP, level, xpToNextLevel }: XPBarProps) {
   return (
     <div
       ref={barRef}
-      className="flex items-center gap-3 bg-gradient-to-r from-indigo-dark to-indigo px-5 py-3 rounded-full shadow-lg w-full"
+      className="flex items-center gap-3 bg-gradient-to-r from-[#2d2410] to-[#443a22] px-5 py-3 rounded-full shadow-lg w-full"
       aria-label={`Nivel ${level}, ${currentXP} XP`}
     >
       {/* Status dot */}
@@ -55,7 +55,7 @@ export default function XPBar({ currentXP, level, xpToNextLevel }: XPBarProps) {
           aria-valuemax={960}
         >
           <div
-            className="h-full bg-mint rounded-full transition-all duration-500"
+            className="h-full bg-mint rounded-full transition-all duration-300"
             style={{ width: `${isMaxLevel ? 100 : fillPercent}%` }}
           />
         </div>

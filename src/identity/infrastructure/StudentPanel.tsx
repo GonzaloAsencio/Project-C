@@ -76,7 +76,7 @@ export default function StudentPanel() {
 
         {/* Left — Eval Mission Selector */}
         <div className="absolute left-8 top-1/2 -translate-y-1/2 z-20">
-          <EvalMissionSelector grades={grades} columns={columns} isDungeon={combatMode} />
+          <EvalMissionSelector isDungeon={combatMode} />
         </div>
 
         {/* Center — Character display */}

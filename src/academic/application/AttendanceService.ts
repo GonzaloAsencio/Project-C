@@ -131,10 +131,10 @@ export class AttendanceService {
    * Uses arrayUnion to avoid a read-before-write.
    */
   async markSelfPresent(classId: string, studentUid: string): Promise<void> {
-    await updateDoc(doc(db, "attendance", classId), {
-      presentStudents: arrayUnion(studentUid),
-    })
-    await this.progressRepo.addXPIdempotent(studentUid, ATTENDANCE_XP, `${classId}_${studentUid}`)
+    await Promise.all([
+      updateDoc(doc(db, "attendance", classId), { presentStudents: arrayUnion(studentUid) }),
+      this.progressRepo.addXPIdempotent(studentUid, ATTENDANCE_XP, `${classId}_${studentUid}`),
+    ])
   }
 
   /** Subscribe to all sessions ordered by date descending. */

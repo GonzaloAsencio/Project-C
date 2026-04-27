@@ -4,26 +4,31 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* shadcn/ui RPG theme — matches v0 globals.css */
-  --background:             #f8f6f1;
-  --foreground:             #2d3748;
-  --card:                   #ffffff;
-  --card-foreground:        #2d3748;
-  --popover:                #ffffff;
-  --popover-foreground:     #2d3748;
-  --primary:                #4f46e5;
-  --primary-foreground:     #ffffff;
-  --secondary:              #f1f0eb;
-  --secondary-foreground:   #2d3748;
-  --muted:                  #e8e6e1;
-  --muted-foreground:       #718096;
-  --accent:                 #e8e6e1;
-  --accent-foreground:      #2d3748;
+  /* 60-30-10 color rule
+     60% #f8f6f1 — dominant (backgrounds, large surfaces)
+     30% #443a22 — secondary (text, borders, supporting elements)
+     10% #faf7ef — accent (cards, inputs, light highlights)
+     + golds kept as highlight/CTA layer */
+
+  --background:             #f8f6f1;   /* 60% dominant */
+  --foreground:             #443a22;   /* 30% secondary */
+  --card:                   #faf7ef;   /* 10% accent surface */
+  --card-foreground:        #443a22;
+  --popover:                #faf7ef;
+  --popover-foreground:     #443a22;
+  --primary:                #fbbf24;   /* gold — main CTA */
+  --primary-foreground:     #443a22;
+  --secondary:              #ede9df;   /* 60% tint */
+  --secondary-foreground:   #443a22;
+  --muted:                  #e5e0d4;
+  --muted-foreground:       #7a6a4a;   /* 30% lightened */
+  --accent:                 #faf7ef;   /* 10% accent */
+  --accent-foreground:      #443a22;
   --destructive:            #ef4444;
-  --destructive-foreground: #ffffff;
-  --border:                 #e2e0db;
-  --input:                  #e2e0db;
-  --ring:                   #4f46e5;
+  --destructive-foreground: #faf7ef;
+  --border:                 #d9d3c3;   /* warm, from 30% */
+  --input:                  #faf7ef;   /* 10% accent */
+  --ring:                   #fbbf24;   /* gold ring */
   --radius:                 0.625rem;
 
   /* RPG custom colors */
@@ -34,12 +39,12 @@
   --lavender:    #e0e7ff;
   --gold:        #fbbf24;
   --gold-dark:   #d97706;
-  --cream:       #f8f6f1;
-  --cream-dark:  #e8e6e1;
+  --cream:       #faf7ef;   /* 10% accent */
+  --cream-dark:  #e5e0d4;
 
   /* Legacy app vars */
-  --text:    #6b6375;
-  --text-h:  #08060d;
+  --text:    #7a6a4a;   /* 30% muted */
+  --text-h:  #443a22;   /* 30% full */
   --bg:      var(--background);
   --sans:    system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -58,16 +63,17 @@
 }
 
 .dark {
-  --background:             #1a1a2e;
+  --background:             #1c1610;
   --foreground:             #f8f6f1;
-  --card:                   #16213e;
+  --card:                   #26200f;
   --card-foreground:        #f8f6f1;
-  --muted:                  #2d3748;
-  --muted-foreground:       #a0aec0;
-  --border:                 #374151;
+  --muted:                  #332b18;
+  --muted-foreground:       #b5a882;
+  --border:                 #3d3420;
+  --input:                  #26200f;
   --indigo:                 #6366f1;
-  --cream:                  #1a1a2e;
-  --cream-dark:             #2d3748;
+  --cream:                  #1c1610;
+  --cream-dark:             #26200f;
 }
 
 @theme inline {

@@ -15,7 +15,7 @@ export default function AvatarDisplay({ displayName, avatarClass, isVictoryAnim,
   return (
     <div className="relative flex items-center justify-center w-[320px] h-[320px] sm:w-[420px] sm:h-[420px]">
       {/* Outer spinning ring */}
-      <div className="absolute w-[90%] h-[90%] rounded-full border-2 border-dashed border-indigo/20 animate-[spin_30s_linear_infinite]" />
+      <div className="absolute w-[90%] h-[90%] rounded-full border-2 border-dashed border-[#443a22]/20 animate-[spin_30s_linear_infinite]" />
 
       {/* Middle ring */}
       <div className="absolute w-[75%] h-[75%] rounded-full border border-mint/20" />
@@ -28,13 +28,13 @@ export default function AvatarDisplay({ displayName, avatarClass, isVictoryAnim,
 
       {/* Floating particles */}
       <div className="absolute w-3 h-3 rounded-full bg-mint/40 top-8 left-1/2 -translate-x-12 animate-bounce" style={{ animationDelay: "0s", animationDuration: "3s" }} />
-      <div className="absolute w-2 h-2 rounded-full bg-indigo/30 top-16 right-12 animate-bounce" style={{ animationDelay: "0.5s", animationDuration: "2.5s" }} />
+      <div className="absolute w-2 h-2 rounded-full bg-[#443a22]/30 top-16 right-12 animate-bounce" style={{ animationDelay: "0.5s", animationDuration: "2.5s" }} />
       <div className="absolute w-3 h-3 rounded-full bg-mint/30 bottom-16 left-12 animate-bounce" style={{ animationDelay: "1s", animationDuration: "3.5s" }} />
       <div className="absolute w-2 h-2 rounded-full bg-gold/60 bottom-20 right-16 animate-bounce" style={{ animationDelay: "1.5s", animationDuration: "2s" }} />
 
       {/* Diamond accents */}
       <div className="absolute w-4 h-4 bg-mint/20 rotate-45 top-10 right-20" />
-      <div className="absolute w-3 h-3 bg-indigo/20 rotate-45 bottom-14 left-20" />
+      <div className="absolute w-3 h-3 bg-[#443a22]/20 rotate-45 bottom-14 left-20" />
       <div className="absolute w-5 h-5 bg-lavender/60 rotate-45 top-28 left-10" />
 
       {/* Avatar circle + class emblem or emoji */}
@@ -64,7 +64,7 @@ export default function AvatarDisplay({ displayName, avatarClass, isVictoryAnim,
         )}
 
         <div className="text-center">
-          <h2 className={cn("text-xl sm:text-2xl font-bold", isDungeon ? "text-white" : "text-[#1e1b4b]")}>
+          <h2 className={cn("text-xl sm:text-2xl font-bold", isDungeon ? "text-white" : "text-[#443a22]")}>
             {displayName}
           </h2>
           <p className={cn("text-sm", isDungeon ? "text-white/60" : "text-gray-500")}>
@@ -75,8 +75,8 @@ export default function AvatarDisplay({ displayName, avatarClass, isVictoryAnim,
 
       {/* Corner accents */}
       <div className="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-mint/30 rounded-tl-2xl" />
-      <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-indigo/20 rounded-tr-2xl" />
-      <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-indigo/20 rounded-bl-2xl" />
+      <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-[#443a22]/20 rounded-tr-2xl" />
+      <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-[#443a22]/20 rounded-bl-2xl" />
       <div className="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-mint/30 rounded-br-2xl" />
     </div>
   )

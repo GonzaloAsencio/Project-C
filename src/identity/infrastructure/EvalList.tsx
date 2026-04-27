@@ -20,7 +20,7 @@ interface EvalListProps {
 const ICON_COLORS: Record<EvaluationStatus | "attendance", string> = {
   Victory:    "text-emerald-500",
   Defeat:     "text-red-400",
-  Pending:    "text-indigo-400",
+  Pending:    "text-[#7a6a4a]",
   Waiting:    "text-slate-300",
   attendance: "text-emerald-500",
 }
@@ -49,7 +49,6 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
   const [claimedKeys, setClaimedKeys] = useState<Set<string>>(() =>
     user ? loadClaimed(user.uid) : new Set()
   )
-  const [attendanceLoading, setAttendanceLoading] = useState(false)
   const [attendanceRegistered, setAttendanceRegistered] = useState(false)
   const [attendanceError, setAttendanceError] = useState<string | null>(null)
   const [activeModal, setActiveModal] = useState<{ type: "victory" | "defeat"; label: string } | null>(null)
@@ -60,15 +59,13 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
 
   async function handleAttendance() {
     if (!user || !session) return
-    setAttendanceLoading(true)
     setAttendanceError(null)
+    setAttendanceRegistered(true)  // optimistic — instant feedback
     try {
       await attendanceService.markSelfPresent(session.id, user.uid)
-      setAttendanceRegistered(true)
     } catch (e) {
+      setAttendanceRegistered(false)  // rollback on error
       setAttendanceError(e instanceof Error ? e.message : "Error al registrar asistencia")
-    } finally {
-      setAttendanceLoading(false)
     }
   }
 
@@ -78,6 +75,9 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
     const next = new Set(claimedKeys).add(col.key)
     setClaimedKeys(next)
     persistClaimed(user.uid, next)
+
+    // Show modal immediately — don't wait for the Firestore write
+    setActiveModal({ type: status === "Victory" ? "victory" : "defeat", label: col.label })
 
     if (status === "Victory") {
       const evalId = `${user.uid}_${col.type === "TP" ? "tp" : "parcial"}${col.index}`
@@ -89,9 +89,6 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
       } catch (e) {
         console.error("[EvalList] claim XP failed:", e)
       }
-      setActiveModal({ type: "victory", label: col.label })
-    } else {
-      setActiveModal({ type: "defeat", label: col.label })
     }
     setClaimLoading(null)
   }
@@ -116,7 +113,7 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
       <div className={cn(
         "rounded-2xl overflow-hidden w-full",
         isDungeon
-          ? "bg-[#0d0d1a]/70 border border-purple-400/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+          ? "bg-[#1a150a]/70 border border-[#443a22]/20 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
           : "bg-white/40 backdrop-blur-sm border border-[#c8aa6e]/20 shadow-[0_4px_24px_rgba(30,27,75,0.06)]"
       )}>
 
@@ -136,9 +133,9 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
                 alreadyPresent || attendanceRegistered
                   ? <ClaimedBadge color="emerald" />
                   : <ActionButton
-                      label={attendanceLoading ? "Registrando…" : "Registrar"}
+                      label="Registrar"
                       onClick={handleAttendance}
-                      disabled={attendanceLoading}
+                      disabled={false}
                       variant="primary"
                       isDungeon={isDungeon}
                     />
@@ -172,7 +169,7 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
             } else if (status === "Pending") {
               action = (
                 <span className={cn("text-[11px] font-semibold",
-                  isDungeon ? "text-indigo-300/70" : "text-indigo-500")}>
+                  isDungeon ? "text-[#b5a882]/70" : "text-[#7a6a4a]")}>
                   En progreso…
                 </span>
               )
@@ -285,12 +282,12 @@ function MissionRow({ icon, iconClass, title, subtitle, xp, isDungeon, action, e
       <div className={cn(
         "w-[68px] rounded-lg py-[5px] text-center shrink-0 border",
         isDungeon
-          ? "border-purple-400/20 bg-purple-400/5"
+          ? "border-[#443a22]/20 bg-[#443a22]/5"
           : "border-[#c8aa6e]/30 bg-[#c8aa6e]/5"
       )}>
         <span className={cn(
           "text-xs font-bold tabular-nums",
-          isDungeon ? "text-purple-300/55" : "text-[#b8860b]"
+          isDungeon ? "text-[#b5a882]/55" : "text-[#b8860b]"
         )}>
           {xp}
         </span>
@@ -328,8 +325,8 @@ function ActionButton({ label, onClick, disabled, variant, isDungeon }: ActionBu
             ? "text-emerald-400 hover:bg-emerald-400/10"
             : "text-emerald-600 hover:bg-emerald-50"
           : isDungeon
-            ? "text-indigo-400 hover:bg-indigo-400/10"
-            : "text-[#1e1b4b]/70 hover:text-[#1e1b4b] hover:bg-[#1e1b4b]/[0.04]"
+            ? "text-[#b5a882] hover:bg-[#443a22]/10"
+            : "text-[#443a22]/70 hover:text-[#443a22] hover:bg-[#443a22]/[0.04]"
       )}
     >
       {label}
