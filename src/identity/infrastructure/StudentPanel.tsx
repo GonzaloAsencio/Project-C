@@ -84,7 +84,7 @@ export default function StudentPanel() {
           {combatMode && pendingEvalKey && (
             <div className={styles.combatZone}>
               <span className={styles.combatTitle}>⚔ Modo Combate Activo</span>
-              <EnemySprite enemyType={pendingEvalKey as "tp1" | "tp2" | "parcial1" | "parcial2"} isDefeated={grades[pendingEvalKey]?.status === "Victory"} />
+              <EnemySprite enemyType={pendingEvalKey} isDefeated={grades[pendingEvalKey]?.status === "Victory"} />
             </div>
           )}
           <AvatarDisplay
@@ -138,7 +138,7 @@ export default function StudentPanel() {
         {combatMode && pendingEvalKey && (
           <div className={styles.combatZone}>
             <span className={styles.combatTitle}>⚔ Modo Combate Activo</span>
-            <EnemySprite enemyType={pendingEvalKey as "tp1" | "tp2" | "parcial1" | "parcial2"} isDefeated={grades[pendingEvalKey]?.status === "Victory"} />
+            <EnemySprite enemyType={pendingEvalKey} isDefeated={grades[pendingEvalKey]?.status === "Victory"} />
           </div>
         )}
         <AvatarDisplay
