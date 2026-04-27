@@ -71,7 +71,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
   berserker: {
     key: "berserker",
     label: "Berserker",
-    subtitle: "Furia indomable en primera linea",
+    subtitle: "Gran resistencia y determinación en situaciones exigentes",
 
     gradient: "linear-gradient(135deg,#f97316,#dc2626)",
     glow: "rgba(249,115,22,0.45)",
@@ -81,7 +81,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
   guerrero: {
     key: "guerrero",
     label: "Guerrero",
-    subtitle: "Acero y disciplina tactica",
+    subtitle: "Disciplina, estrategia y equilibrio en cada desafío",
 
     gradient: "linear-gradient(135deg,#3b82f6,#1e3a8a)",
     glow: "rgba(59,130,246,0.45)",
@@ -91,7 +91,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
   maga: {
     key: "maga",
     label: "Maga",
-    subtitle: "Control absoluto de la energia arcana",
+    subtitle: "Pensamiento analítico y dominio del conocimiento",
 
     gradient: "linear-gradient(135deg,#a855f7,#4c1d95)",
     glow: "rgba(168,85,247,0.45)",
@@ -101,7 +101,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
   arquera: {
     key: "arquera",
     label: "Arquera",
-    subtitle: "Precision letal a larga distancia",
+    subtitle: "Precisión, enfoque y toma de decisiones acertadas",
 
     gradient: "linear-gradient(135deg,#22c55e,#166534)",
     glow: "rgba(34,197,94,0.45)",
@@ -111,7 +111,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
   asesina: {
     key: "asesina",
     label: "Asesina",
-    subtitle: "Golpes rapidos desde las sombras",
+    subtitle: "Agilidad, rapidez y capacidad de adaptación",
 
     gradient: "linear-gradient(135deg,#0f172a,#334155)",
     glow: "rgba(148,163,184,0.45)",
@@ -121,7 +121,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
   paladin: {
     key: "paladin",
     label: "Paladin",
-    subtitle: "Defensa sagrada del equipo",
+    subtitle: "Compromiso, liderazgo y sentido de responsabilidad",
 
     gradient: "linear-gradient(135deg,#e8d5a3,#c9a227,#7b5e1a)",
     glow: "rgba(201,162,39,0.55)",
@@ -131,7 +131,7 @@ const PLAYABLE_AVATAR_VISUALS: Record<PlayableAvatarClass, AvatarVisual> = {
   sacerdote: {
     key: "sacerdote",
     label: "Sacerdote",
-    subtitle: "Soporte y restauracion espiritual",
+    subtitle: "Apoyo constante, empatía y trabajo en equipo",
 
     gradient: "linear-gradient(135deg,#06b6d4,#0e7490)",
     glow: "rgba(6,182,212,0.45)",

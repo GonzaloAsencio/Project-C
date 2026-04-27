@@ -32,3 +32,6 @@ dist-ssr
 .agents/skills/
 .claude/skills/
 .kiro/skills/
+
+# Firebase
+firestore.rules
