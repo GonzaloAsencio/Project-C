@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { FallingParticles } from "./FallingParticles"
-import { DefeatBadge } from "./DefeatBadge"
 
 interface DefeatModalProps {
   open: boolean
@@ -70,15 +69,12 @@ export function DefeatModal({ open, evalName, onClose }: DefeatModalProps) {
 
           {/* Main content */}
           <motion.div
-            className="relative z-10 flex flex-col items-center gap-8 px-4 w-full max-w-lg"
+            className="relative z-10 flex flex-col items-center gap-6 px-4 w-full max-w-lg text-center"
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
           >
-            {/* Defeat badge */}
-            <DefeatBadge />
-
             {/* DERROTA text */}
             <motion.div
               className="text-center"
@@ -120,27 +116,18 @@ export function DefeatModal({ open, evalName, onClose }: DefeatModalProps) {
               Cada derrota es una lección. Reagrupá tus fuerzas y volvé más fuerte.
             </motion.p>
 
-            {/* Action button */}
-            <motion.div
-              className="w-full max-w-xs mt-4"
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1.4, duration: 0.6 }}
+            {/* Continue hint */}
+            <motion.p
+              onClick={onClose}
+              className="mt-8 text-xs tracking-[0.25em] cursor-pointer select-none uppercase"
+              style={{ color: "oklch(0.55 0.02 230 / 0.55)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.55, 0.35, 0.55] }}
+              transition={{ delay: 1.4, duration: 2.4, times: [0, 0.25, 0.6, 1], repeat: Infinity, repeatType: "mirror" }}
+              whileHover={{ color: "oklch(0.75 0.02 230 / 0.9)" } as object}
             >
-              <motion.button
-                onClick={onClose}
-                className="w-full py-3.5 px-8 rounded-xl font-medium text-base transition-all duration-300"
-                style={{
-                  background: "oklch(0.25 0.02 230 / 0.4)",
-                  color: "oklch(0.85 0.02 230)",
-                  border: "1px solid oklch(0.5 0.02 230 / 0.3)",
-                }}
-                whileHover={{ scale: 1.02, background: "oklch(0.3 0.02 230 / 0.5)" }}
-                whileTap={{ scale: 0.98 }}
-              >
-                VOLVER
-              </motion.button>
-            </motion.div>
+              Haz click para continuar
+            </motion.p>
           </motion.div>
         </motion.div>
       )}

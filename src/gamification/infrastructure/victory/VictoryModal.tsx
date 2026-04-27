@@ -1,5 +1,4 @@
 import { motion, AnimatePresence } from "framer-motion"
-import { RadialRays } from "../level-up/RadialRays"
 import { Particles } from "../level-up/Particles"
 import { Sparkles } from "../level-up/Sparkles"
 import { VictoryBadge } from "./VictoryBadge"
@@ -49,9 +48,6 @@ export function VictoryModal({ open, evalName, onClose }: VictoryModalProps) {
             }}
           />
 
-          {/* Radial light rays */}
-          <RadialRays />
-
           {/* Floating particles */}
           <Particles />
 
@@ -100,27 +96,18 @@ export function VictoryModal({ open, evalName, onClose }: VictoryModalProps) {
               </motion.p>
             </motion.div>
 
-            {/* Continue Button */}
-            <motion.button
+            {/* Continue hint */}
+            <motion.p
               onClick={onClose}
-              className="mt-4 px-12 py-3 rounded-xl font-bold text-base transition-all duration-300"
-              style={{
-                background: "oklch(0.92 0.05 85 / 0.15)",
-                color: "oklch(0.88 0.06 85)",
-                border: "1px solid oklch(0.85 0.06 85 / 0.3)",
-                boxShadow: "0 0 20px oklch(0.88 0.06 85 / 0.1)",
-              }}
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1.0, type: "spring" }}
-              whileHover={{
-                scale: 1.05,
-                boxShadow: "0 0 30px oklch(0.88 0.06 85 / 0.2)",
-              }}
-              whileTap={{ scale: 0.95 }}
+              className="mt-12 text-xs tracking-[0.25em] cursor-pointer select-none uppercase"
+              style={{ color: "oklch(0.75 0.04 85 / 0.55)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.55, 0.35, 0.55] }}
+              transition={{ delay: 1.0, duration: 2.4, times: [0, 0.25, 0.6, 1], repeat: Infinity, repeatType: "mirror" }}
+              whileHover={{ color: "oklch(0.88 0.06 85 / 0.9)" } as object}
             >
-              TAP TO CONTINUE
-            </motion.button>
+              Haz click para continuar
+            </motion.p>
           </motion.div>
         </motion.div>
       )}

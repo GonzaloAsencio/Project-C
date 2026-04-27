@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { LevelBadge } from "./LevelBadge"
 import { Particles } from "./Particles"
-import { RadialRays } from "./RadialRays"
 import { Sparkles } from "./Sparkles"
 
 export interface LevelUpModalProps {
@@ -34,9 +33,6 @@ export function LevelUpModal({ open, nextLevel, onClose }: LevelUpModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           />
-
-          {/* Radial light rays — full screen, behind content */}
-          <RadialRays />
 
           {/* Floating particles — full screen */}
           <Particles />
@@ -86,28 +82,18 @@ export function LevelUpModal({ open, nextLevel, onClose }: LevelUpModalProps) {
               </motion.p>
             </motion.div>
 
-            {/* Button */}
-            <motion.button
+            {/* Continue hint */}
+            <motion.p
               onClick={onClose}
-              className="mt-2 px-10 py-3 rounded-xl font-bold text-base tracking-widest uppercase transition-all duration-300 cursor-pointer"
-              style={{
-                background: "oklch(0.92 0.05 85 / 0.15)",
-                color: "oklch(0.88 0.06 85)",
-                border: "1px solid oklch(0.85 0.06 85 / 0.3)",
-                boxShadow: "0 0 20px oklch(0.88 0.06 85 / 0.1)",
-              }}
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1, type: "spring" }}
-              whileHover={{
-                scale: 1.05,
-                boxShadow: "0 0 30px oklch(0.88 0.06 85 / 0.2)",
-              }}
-              whileTap={{ scale: 0.95 }}
-              autoFocus
+              className="mt-12 text-xs tracking-[0.25em] cursor-pointer select-none uppercase"
+              style={{ color: "oklch(0.75 0.04 85 / 0.55)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.55, 0.35, 0.55] }}
+              transition={{ delay: 1.0, duration: 2.4, times: [0, 0.25, 0.6, 1], repeat: Infinity, repeatType: "mirror" }}
+              whileHover={{ color: "oklch(0.88 0.06 85 / 0.9)" } as object}
             >
-              TAP TO CONTINUE
-            </motion.button>
+              Haz click para continuar
+            </motion.p>
           </motion.div>
         </motion.div>
       )}

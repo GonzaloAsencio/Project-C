@@ -208,8 +208,8 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
         </div>
 
         <div className={styles.footerCopy}>
-          <p className={styles.footerTitle}>El destino aguarda...</p>
-          <p className={styles.footerSubtitle}>Un nuevo mundo, el comienzo del viaje hacia tu aventura.</p>
+          <p className={styles.footerTitle}>Selección de clase</p>
+          <p className={styles.footerSubtitle}>Este es tu punto de partida.</p>
         </div>
 
         <div className={styles.controls}>
@@ -247,7 +247,7 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
                   ? "Invocando clase..."
                   : phase === "success"
                     ? "Listo"
-                    : "Despertar"}
+                    : "Empezar a aprender"}
               </span>
             </button>
           </div>
