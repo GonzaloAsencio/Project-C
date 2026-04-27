@@ -6,6 +6,7 @@ import {
   PLAYABLE_AVATAR_CLASSES,
   getAvatarVisual,
 } from "../domain/avatarClasses"
+import { Particles } from "../../gamification/infrastructure/level-up/Particles"
 import styles from "./FirstLoginClassSelection.module.css"
 
 const authAdapter = new FirebaseAuthAdapter()
@@ -45,19 +46,6 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
 
   const options = useMemo(() => PLAYABLE_AVATAR_CLASSES.map((cls) => getAvatarVisual(cls)), [])
   const selectedClass = options[selectedIndex]?.key
-
-  const particles = useMemo(
-    () =>
-      Array.from({ length: 52 }, (_, i) => ({
-        id: i,
-        left: `${Math.round((Math.sin(i * 12.9898) * 43758.5453 - Math.floor(Math.sin(i * 12.9898) * 43758.5453)) * 100)}%`,
-        top: `${Math.round((Math.sin(i * 78.233) * 18342.1321 - Math.floor(Math.sin(i * 78.233) * 18342.1321)) * 100)}%`,
-        size: 1 + (i % 3),
-        delay: (i % 10) * 0.42,
-        duration: 9 + (i % 7),
-      })),
-    []
-  )
 
   const visibleOptions = useMemo(() => {
     const items: Array<(typeof options)[number] & { position: number }> = []
@@ -113,22 +101,8 @@ export default function FirstLoginClassSelection({ displayName }: FirstLoginClas
   return (
     <div className={phase === "success" ? `${styles.root} ${styles.rootSuccess}` : styles.root}>
       <div className={styles.auroraLayer} aria-hidden="true" />
-      <div className={styles.particleLayer} aria-hidden="true">
-        {particles.map((particle) => (
-          <span
-            key={particle.id}
-            className={styles.particle}
-            style={{
-              width: `${particle.size}px`,
-              height: `${particle.size}px`,
-              left: particle.left,
-              top: particle.top,
-              animationDelay: `${particle.delay}s`,
-              animationDuration: `${particle.duration}s`,
-            }}
-          />
-        ))}
-      </div>
+      <div className={styles.particleLayer} aria-hidden="true" />
+      <Particles />
       {phase === "success" && (
         <div className={styles.successOverlay} role="status" aria-live="polite">
           <p className={styles.successTitle}>Clase vinculada</p>

@@ -42,16 +42,6 @@
   will-change: background-position;
 }
 
-.particle {
-  position: absolute;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.1) 72%);
-  animation-name: floatParticle;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  will-change: transform, opacity;
-  transform: translate3d(0, 0, 0);
-}
 
 .panel {
   width: 100%;
@@ -468,22 +458,6 @@
   50%       { transform: translateY(-13px); }
 }
 
-@keyframes floatParticle {
-  0% {
-    transform: translate3d(0, 0, 0) scale(0.8);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.75;
-  }
-  85% {
-    opacity: 0.35;
-  }
-  100% {
-    transform: translate3d(4px, -80px, 0) scale(1.1);
-    opacity: 0;
-  }
-}
 
 @keyframes starDrift {
   from {
@@ -497,7 +471,6 @@
 @media (prefers-reduced-motion: reduce) {
   .auroraLayer,
   .particleLayer,
-  .particle,
   .spark,
   .bannerPos,
   .banner {
