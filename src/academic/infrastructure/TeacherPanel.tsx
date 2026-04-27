@@ -18,11 +18,11 @@ import StudentDetailModal from "./StudentDetailModal"
 import type { CellState } from "./GradeCell"
 import { FirebaseAuthAdapter } from "../../identity/infrastructure/FirebaseAuthAdapter"
 import { isValidTemporaryPassword } from "../../identity/application/studentProvisioning"
+import MateriaSetup from "../../identity/infrastructure/MateriaSetup"
 import styles from "./TeacherPanel.module.css"
 
 type CellKey = string
 
-const CONFIG_DOC = doc(db, "config", "evalColumns")
 const updateGradeUC = new UpdateGrade()
 const deleteStudentUC = new DeleteStudent()
 const authAdapter = new FirebaseAuthAdapter()
@@ -36,6 +36,31 @@ type ConfirmAction =
 export default function TeacherPanel() {
   const { user } = useAuth()
   const logout = useLogout()
+
+  // Gate: teacher must have a materia configured
+  if (!user) return null
+  if (!user.materiaId) {
+    return (
+      <MateriaSetup
+        teacherUid={user.uid}
+        onCreated={() => window.location.reload()}
+      />
+    )
+  }
+
+  return <TeacherPanelInner user={user} materiaId={user.materiaId} logout={logout} />
+}
+
+function TeacherPanelInner({
+  user,
+  materiaId,
+  logout,
+}: {
+  user: NonNullable<ReturnType<typeof useAuth>["user"]>
+  materiaId: string
+  logout: () => void
+}) {
+  const CONFIG_DOC = doc(db, "config", materiaId)
   const {
     students,
     filteredStudents,
@@ -49,8 +74,8 @@ export default function TeacherPanel() {
     setFilterText,
     loadMore,
     refresh,
-  } = useTeacherData()
-  const { columns } = useEvalColumns()
+  } = useTeacherData(materiaId)
+  const { columns } = useEvalColumns(materiaId)
 
   const [cellStates, setCellStates] = useState<Record<CellKey, CellState>>({})
   const [creatingSession, setCreatingSession] = useState(false)
@@ -94,7 +119,7 @@ export default function TeacherPanel() {
       const sessionDate = new Date(`${newSessionDate}T12:00:00`)
       const ws = newSessionSelfReg ? new Date(`${newSessionDate}T${newSessionWinStart}:00`) : undefined
       const we = newSessionSelfReg ? new Date(`${newSessionDate}T${newSessionWinEnd}:00`) : undefined
-      await attendanceService.createSession(user.uid, sessionDate, newSessionSelfReg, ws, we)
+      await attendanceService.createSession(user.uid, sessionDate, materiaId, newSessionSelfReg, ws, we)
       setShowSessionForm(false)
     } finally {
       setCreatingSession(false)
@@ -240,6 +265,7 @@ export default function TeacherPanel() {
         displayName: newStudentName.trim(),
         email: newStudentEmail.trim(),
         password: newStudentPassword,
+        materiaId,
       })
       await refresh()
       setCreateStudentSuccess("Alumno creado. Elegira su clase en el primer login.")

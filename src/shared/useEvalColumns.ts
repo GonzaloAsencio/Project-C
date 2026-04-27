@@ -16,15 +16,19 @@ export const DEFAULT_COLUMNS: EvalColumn[] = [
   { key: "parcial2", label: "Parcial 2", type: "Parcial", index: 2 },
 ]
 
-const CONFIG_DOC = doc(db, "config", "evalColumns")
-
-export function useEvalColumns(): { columns: EvalColumn[]; loading: boolean } {
+export function useEvalColumns(materiaId: string | null): { columns: EvalColumn[]; loading: boolean } {
   const [columns, setColumns] = useState<EvalColumn[]>(DEFAULT_COLUMNS)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!materiaId) {
+      setColumns(DEFAULT_COLUMNS)
+      setLoading(false)
+      return
+    }
+    const configDoc = doc(db, "config", materiaId)
     const unsub = onSnapshot(
-      CONFIG_DOC,
+      configDoc,
       (snap) => {
         if (snap.exists()) {
           const data = snap.data() as { columns: EvalColumn[] }
@@ -40,7 +44,7 @@ export function useEvalColumns(): { columns: EvalColumn[]; loading: boolean } {
       }
     )
     return unsub
-  }, [])
+  }, [materiaId])
 
   return { columns, loading }
 }

@@ -12,6 +12,7 @@ export class User {
     readonly uid: string,
     readonly email: string,
     readonly role: Role,
-    readonly avatarClass: AvatarClass | null
+    readonly avatarClass: AvatarClass | null,
+    readonly materiaId: string | null = null
   ) {}
 }

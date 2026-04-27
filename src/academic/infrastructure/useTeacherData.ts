@@ -52,7 +52,7 @@ function sortByName(students: StudentDocument[]): StudentDocument[] {
   )
 }
 
-export function useTeacherData(): TeacherDataResult {
+export function useTeacherData(materiaId: string): TeacherDataResult {
   const [students, setStudents] = useState<StudentDocument[]>([])
   const [sessions, setSessions] = useState<ClassSession[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,8 +68,9 @@ export function useTeacherData(): TeacherDataResult {
     query(
       collection(db, "users"),
       where("role", "==", "student"),
+      where("materiaId", "==", materiaId),
       limit(PAGE_SIZE)
-    ), [])
+    ), [materiaId])
 
   const fetchFirstPage = useCallback(async () => {
     setLoading(true)
@@ -99,6 +100,7 @@ export function useTeacherData(): TeacherDataResult {
       const q = query(
         collection(db, "users"),
         where("role", "==", "student"),
+        where("materiaId", "==", materiaId),
         startAfter(lastVisibleRef.current),
         limit(PAGE_SIZE)
       )
@@ -119,7 +121,7 @@ export function useTeacherData(): TeacherDataResult {
 
   useEffect(() => {
     const unsub = onSnapshot(
-      query(collection(db, "users"), where("role", "==", "student")),
+      query(collection(db, "users"), where("role", "==", "student"), where("materiaId", "==", materiaId)),
       (snap) => {
         // Only applies updates to already-loaded students (no new pages fetched)
         setStudents((prev) => {
@@ -137,6 +139,7 @@ export function useTeacherData(): TeacherDataResult {
 
   useEffect(() => {
     const unsub = attendanceService.subscribeToSessions(
+      materiaId,
       (s) => { setSessions(s); setAttendanceError(null) },
       (err: FirestoreError) => {
         console.error("[useTeacherData] attendance error:", err.code, err.message)

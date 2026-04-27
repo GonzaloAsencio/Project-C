@@ -17,13 +17,14 @@ export interface BaseUserDoc {
   processedEvalIds: string[]
 }
 
-export function buildStudentUserDoc(input: { displayName: string; email: string }) {
-  const { displayName, email } = input
+export function buildStudentUserDoc(input: { displayName: string; email: string; materiaId: string }) {
+  const { displayName, email, materiaId } = input
   return {
     displayName,
     email,
     role: "student" as const,
     avatarClass: null,
+    materiaId,
     level: 1,
     xp: 0,
     xpToNextLevel: 100,

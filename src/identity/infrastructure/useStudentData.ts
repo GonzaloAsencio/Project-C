@@ -35,7 +35,7 @@ export interface StudentDataResult {
 
 export function useStudentData(): StudentDataResult {
   const { user } = useAuth()
-  const { columns } = useEvalColumns()
+  const { columns } = useEvalColumns(user?.materiaId ?? null)
   const [userData, setUserData] = useState<UserDocument | null>(null)
   const [snapshotError, setSnapshotError] = useState<string | null>(null)
   const [xpGainEvent, setXpGainEvent] = useState<{ gain: number; seq: number } | null>(null)

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import clsx from "clsx"
+import { doc, getDoc } from "firebase/firestore"
+import { db } from "../../shared/firebase"
 import { useAuth } from "../../shared/AuthContext"
 import { useLogout } from "../../shared/useLogout"
 import AvatarDisplay from "./AvatarDisplay"
@@ -15,11 +17,23 @@ import FirstLoginClassSelection from "./FirstLoginClassSelection"
 import { needsClassSelection } from "../application/onboardingGate"
 import styles from "./StudentPanel.module.css"
 
+function useMateriaName(materiaId: string | null): string {
+  const [name, setName] = useState("Paradigma De Programación")
+  useEffect(() => {
+    if (!materiaId) return
+    getDoc(doc(db, "materias", materiaId)).then((snap) => {
+      if (snap.exists()) setName((snap.data() as { name: string }).name)
+    }).catch(() => { /* keep default */ })
+  }, [materiaId])
+  return name
+}
+
 
 export default function StudentPanel() {
   const { user } = useAuth()
   const logout = useLogout()
   const { userData, grades, columns, snapshotError, xpGainEvent, levelUpEvent } = useStudentData()
+  const materiaName = useMateriaName(user?.materiaId ?? null)
   const [xpToast, setXpToast] = useState<{ amount: number; key: number } | null>(null)
   const [levelUpModal, setLevelUpModal] = useState<{ prevLevel: number; nextLevel: number } | null>(null)
   const [victoryAnim, setVictoryAnim] = useState(false)
@@ -80,7 +94,7 @@ export default function StudentPanel() {
 
       {/* Navbar */}
       <nav className={clsx(styles.navbar, combatMode && styles.navbarDungeon)}>
-        <span className={styles.navbarBrand}>Paradigma De Programación</span>
+        <span className={styles.navbarBrand}>{materiaName}</span>
         <div ref={settingsRef} className={styles.settingsWrap}>
           <button
             className={clsx(styles.settingsBtn, combatMode && styles.settingsBtnDungeon)}

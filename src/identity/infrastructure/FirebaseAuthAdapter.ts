@@ -26,11 +26,11 @@ function getSecondaryAuth() {
 }
 
 function toUser(docData: unknown, uid: string, fallbackEmail: string): User {
-  const data = (docData ?? {}) as { role?: Role; avatarClass?: AvatarClass | null; email?: string }
+  const data = (docData ?? {}) as { role?: Role; avatarClass?: AvatarClass | null; email?: string; materiaId?: string | null }
   if (!data.role) {
     throw Object.assign(new Error("User role not found"), { code: "auth/user-doc-invalid" })
   }
-  return new User(uid, data.email ?? fallbackEmail, data.role, data.avatarClass ?? null)
+  return new User(uid, data.email ?? fallbackEmail, data.role, data.avatarClass ?? null, data.materiaId ?? null)
 }
 
 export class FirebaseAuthAdapter {
@@ -60,15 +60,16 @@ export class FirebaseAuthAdapter {
     displayName: string
     email: string
     password: string
+    materiaId: string
   }): Promise<{ uid: string }> {
     const secondaryAuth = getSecondaryAuth()
-    const { displayName, email, password } = input
+    const { displayName, email, password, materiaId } = input
 
     const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password)
     const uid = credential.user.uid
 
     const batch = writeBatch(db)
-    batch.set(doc(db, "users", uid), buildStudentUserDoc({ displayName, email }))
+    batch.set(doc(db, "users", uid), buildStudentUserDoc({ displayName, email, materiaId }))
 
     for (const evaluationDoc of buildStudentEvaluationDocs(uid)) {
       batch.set(doc(db, "evaluations", evaluationDoc.id), evaluationDoc.data)

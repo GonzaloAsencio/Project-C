@@ -6,7 +6,6 @@ import {
   doc,
   getDoc,
   onSnapshot,
-  orderBy,
   query,
   Timestamp,
   updateDoc,
@@ -51,6 +50,7 @@ export class AttendanceService {
   async createSession(
     teacherUid: string,
     sessionDate: Date,
+    materiaId: string,
     selfRegistration = false,
     windowStart?: Date,
     windowEnd?: Date,
@@ -58,6 +58,7 @@ export class AttendanceService {
     const payload: Record<string, unknown> = {
       date: Timestamp.fromDate(sessionDate),
       createdBy: teacherUid,
+      materiaId,
       presentStudents: [],
       selfRegistration,
     }
@@ -137,16 +138,23 @@ export class AttendanceService {
     ])
   }
 
-  /** Subscribe to all sessions ordered by date descending. */
+  /** Subscribe to sessions for a specific materia, ordered by date descending. */
   subscribeToSessions(
+    materiaId: string,
     onUpdate: (sessions: ClassSession[]) => void,
     onError?: (err: FirestoreError) => void,
   ): () => void {
-    const q = query(collection(db, "attendance"), orderBy("date", "desc"))
+    const q = query(
+      collection(db, "attendance"),
+      where("materiaId", "==", materiaId),
+    )
     return onSnapshot(
       q,
       (snap) => {
-        onUpdate(snap.docs.map(mapSession))
+        const sorted = snap.docs
+          .map(mapSession)
+          .sort((a, b) => b.date.getTime() - a.date.getTime())
+        onUpdate(sorted)
       },
       (err) => {
         console.error("[AttendanceService] onSnapshot error:", err.code, err.message)
