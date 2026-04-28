@@ -35,3 +35,6 @@ dist-ssr
 
 # Firebase
 firestore.rules
+
+# Local scripts
+scripts/createStudents.mjs

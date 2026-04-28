@@ -122,16 +122,26 @@ export default function StudentPanel() {
       </nav>
 
       {/* ── Desktop layout (3 columns) ── */}
-      <div className="hidden lg:flex flex-1 z-10">
-        <div className="max-w-screen-2xl mx-auto w-full h-full flex items-center relative">
-
+      <div className="hidden lg:flex flex-1 relative z-10">
         {/* Left — Eval Mission Selector */}
-        <div className="absolute left-8 top-1/2 -translate-y-1/2 z-20">
+        <div className="absolute left-12 xl:left-16 top-1/2 -translate-y-1/2 z-20">
           <EvalMissionSelector isDungeon={combatMode} />
         </div>
 
+        {/* Right — Profile + Evals */}
+        <div className="absolute right-12 xl:right-16 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4 w-72 xl:w-80 2xl:w-96">
+          <ProfileCard
+            name={userData.displayName}
+            avatarClass={userData.avatarClass}
+            level={userData.level}
+            currentXP={userData.xp}
+            xpToNextLevel={xpToNext}
+          />
+          <EvalList grades={grades} columns={columns} isDungeon={combatMode} />
+        </div>
+
         {/* Center — Character display */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-6">
+        <div className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-6">
           {combatMode && pendingEvalKey && (
             <div className={styles.combatZone}>
               <span className={styles.combatTitle}>⚔ Modo Combate Activo</span>
@@ -144,19 +154,6 @@ export default function StudentPanel() {
             isVictoryAnim={victoryAnim}
             isDungeon={combatMode}
           />
-        </div>
-
-        {/* Right — Profile + Evals */}
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4 w-72 xl:w-80 2xl:w-96">
-          <ProfileCard
-            name={userData.displayName}
-            avatarClass={userData.avatarClass}
-            level={userData.level}
-            currentXP={userData.xp}
-            xpToNextLevel={xpToNext}
-          />
-          <EvalList grades={grades} columns={columns} isDungeon={combatMode} />
-        </div>
         </div>
       </div>
 
