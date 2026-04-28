@@ -408,6 +408,7 @@ function TeacherPanelInner({
       {detailStudent && (
         <StudentDetailModal
           student={detailStudent}
+          materiaId={user.materiaId}
           onClose={() => setDetailStudent(null)}
         />
       )}

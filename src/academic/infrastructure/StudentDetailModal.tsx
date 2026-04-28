@@ -16,24 +16,26 @@ import { useEvalColumns } from "../../shared/useEvalColumns"
 import styles from "./StudentDetailModal.module.css"
 
 const STATUS_COLORS: Record<EvaluationStatus, string> = {
-  Victory: "#4ade80", Defeat: "#f87171", Pending: "#facc15",
+  Victory: "#4ade80", Defeat: "#f87171", Pending: "#facc15", Waiting: "#94a3b8",
 }
 const STATUS_LABELS: Record<EvaluationStatus, string> = {
-  Victory: "Victoria", Defeat: "Derrota", Pending: "Pendiente",
+  Victory: "Victoria", Defeat: "Derrota", Pending: "Pendiente", Waiting: "Esperando",
 }
 const EVAL_ROW_CLASS: Record<EvaluationStatus, string> = {
   Victory: styles.evalRowVictory,
   Defeat:  styles.evalRowDefeat,
   Pending: styles.evalRowPending,
+  Waiting: styles.evalRowPending,
 }
 
 interface Props {
   student: StudentDocument
+  materiaId: string | null
   onClose: () => void
 }
 
-export default function StudentDetailModal({ student, onClose }: Props) {
-  const { columns } = useEvalColumns()
+export default function StudentDetailModal({ student, materiaId, onClose }: Props) {
+  const { columns } = useEvalColumns(materiaId)
 
   // Close on Escape
   useEffect(() => {

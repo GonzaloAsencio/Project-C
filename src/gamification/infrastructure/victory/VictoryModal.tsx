@@ -104,7 +104,7 @@ export function VictoryModal({ open, evalName, onClose }: VictoryModalProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: [0, 0.55, 0.35, 0.55] }}
               transition={{ delay: 1.0, duration: 2.4, times: [0, 0.25, 0.6, 1], repeat: Infinity, repeatType: "mirror" }}
-              whileHover={{ color: "oklch(0.88 0.06 85 / 0.9)" } as object}
+              whileHover={{ color: "oklch(0.88 0.06 85 / 0.9)" }}
             >
               Haz click para continuar
             </motion.p>

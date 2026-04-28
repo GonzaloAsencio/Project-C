@@ -4,11 +4,11 @@ import type { GradeEntry } from "./useStudentData"
 import styles from "./EvalCard.module.css"
 
 const STATUS_LABELS: Record<EvaluationStatus, string> = {
-  Victory: "Victoria ✓", Defeat: "Derrota ✗", Pending: "Pendiente…",
+  Victory: "Victoria ✓", Defeat: "Derrota ✗", Pending: "Pendiente…", Waiting: "Esperando…",
 }
 
 const STATUS_COLORS: Record<EvaluationStatus, string> = {
-  Victory: "#4ade80", Defeat: "#f87171", Pending: "#facc15",
+  Victory: "#4ade80", Defeat: "#f87171", Pending: "#facc15", Waiting: "#94a3b8",
 }
 
 interface EvalCardProps {

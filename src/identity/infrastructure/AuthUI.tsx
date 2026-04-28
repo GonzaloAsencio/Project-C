@@ -8,6 +8,7 @@ import styles from "./AuthUI.module.css"
 
 const adapter = new FirebaseAuthAdapter()
 const loginUser = new LoginUser(adapter)
+const SHOW_ADMIN_MODE = import.meta.env.VITE_SHOW_ADMIN_MODE !== "false"
 
 const SPRING = { stiffness: 120, damping: 20, mass: 0.6 }
 
@@ -202,6 +203,7 @@ export default function AuthUI() {
               </button>
             </form>
 
+            {SHOW_ADMIN_MODE && (
             <div className={styles.toggle}>
               {mode === "login" ? "Modo administrador" : "Volver al ingreso"}{" "}
               <button
@@ -211,6 +213,7 @@ export default function AuthUI() {
                 {mode === "login" ? "Registrar profesor" : "Iniciar sesión"}
               </button>
             </div>
+            )}
           </motion.div>
         </div>
       </div>

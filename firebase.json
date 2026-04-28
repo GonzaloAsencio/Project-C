@@ -1,7 +1,15 @@
 {
   "hosting": {
+    "site": "paradigma-programacion",
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "redirects": [
+      {
+        "source": "/teacher",
+        "destination": "/login",
+        "type": 302
+      }
+    ],
     "rewrites": [
       {
         "source": "**",

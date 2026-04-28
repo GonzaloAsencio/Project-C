@@ -14,7 +14,7 @@ describe("studentProvisioning", () => {
         fc.string({ minLength: 1, maxLength: 40 }),
         fc.emailAddress(),
         (displayName, email) => {
-          const doc = buildStudentUserDoc({ displayName, email })
+          const doc = buildStudentUserDoc({ displayName, email, materiaId: "mat-1" })
           return (
             doc.displayName === displayName &&
             doc.email === email &&

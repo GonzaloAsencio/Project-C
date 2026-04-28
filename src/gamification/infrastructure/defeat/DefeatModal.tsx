@@ -124,7 +124,7 @@ export function DefeatModal({ open, evalName, onClose }: DefeatModalProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: [0, 0.55, 0.35, 0.55] }}
               transition={{ delay: 1.4, duration: 2.4, times: [0, 0.25, 0.6, 1], repeat: Infinity, repeatType: "mirror" }}
-              whileHover={{ color: "oklch(0.75 0.02 230 / 0.9)" } as object}
+              whileHover={{ color: "oklch(0.75 0.02 230 / 0.9)" }}
             >
               Haz click para continuar
             </motion.p>

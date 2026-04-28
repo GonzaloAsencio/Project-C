@@ -10,8 +10,4 @@ export default defineConfig({
       ignored: ['**/.kiro/**'],
     },
   },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-  },
 })

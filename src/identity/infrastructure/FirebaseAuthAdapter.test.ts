@@ -72,6 +72,7 @@ describe("FirebaseAuthAdapter.createStudentByTeacher", () => {
       displayName: "Alumno",
       email: "alumno@escuela.com",
       password: "123456",
+      materiaId: "mat-1",
     })
 
     expect(result.uid).toBe("student-1")
@@ -113,6 +114,7 @@ describe("FirebaseAuthAdapter.createStudentByTeacher", () => {
         displayName: "Alumno",
         email: "alumno2@escuela.com",
         password: "123456",
+        materiaId: "mat-1",
       })
     ).rejects.toThrow("commit failed")
 
@@ -136,6 +138,7 @@ describe("FirebaseAuthAdapter.createStudentByTeacher", () => {
         displayName: "Alumno",
         email: "alumno3@escuela.com",
         password: "123456",
+        materiaId: "mat-1",
       })
     ).rejects.toThrow("commit failed")
 
