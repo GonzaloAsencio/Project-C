@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "project-c-2c329"
-  }
+    "default": "project-c-2c329",
+    "firebase use paradigmas-programacion-2026": "project-c-2c329"
+  },
+  "targets": {},
+  "etags": {}
 }
