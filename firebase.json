@@ -1,6 +1,5 @@
 {
   "hosting": {
-    "site": "paradigma-programacion",
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "redirects": [

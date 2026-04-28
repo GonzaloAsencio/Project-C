@@ -72,9 +72,3 @@
   .avatarInner { font-size: 3rem; }
   .name        { font-size: 1.5rem; }
 }
-
-@media (min-width: 1024px) {
-  .avatarRing  { width: 140px; height: 140px; }
-  .avatarInner { font-size: 3.5rem; }
-  .name        { font-size: 1.6rem; }
-}

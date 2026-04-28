@@ -18,7 +18,7 @@ import { needsClassSelection } from "../application/onboardingGate"
 import styles from "./StudentPanel.module.css"
 
 function useMateriaName(materiaId: string | null): string {
-  const [name, setName] = useState("Paradigma De Programación")
+  const [name, setName] = useState("Paradigmas De Programación")
   useEffect(() => {
     if (!materiaId) return
     getDoc(doc(db, "materias", materiaId)).then((snap) => {
@@ -122,7 +122,8 @@ export default function StudentPanel() {
       </nav>
 
       {/* ── Desktop layout (3 columns) ── */}
-      <div className="hidden lg:flex flex-1 items-center relative z-10">
+      <div className="hidden lg:flex flex-1 z-10">
+        <div className="max-w-screen-2xl mx-auto w-full h-full flex items-center relative">
 
         {/* Left — Eval Mission Selector */}
         <div className="absolute left-8 top-1/2 -translate-y-1/2 z-20">
@@ -146,7 +147,7 @@ export default function StudentPanel() {
         </div>
 
         {/* Right — Profile + Evals */}
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4 w-96">
+        <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4 w-72 xl:w-80 2xl:w-96">
           <ProfileCard
             name={userData.displayName}
             avatarClass={userData.avatarClass}
@@ -155,6 +156,7 @@ export default function StudentPanel() {
             xpToNextLevel={xpToNext}
           />
           <EvalList grades={grades} columns={columns} isDungeon={combatMode} />
+        </div>
         </div>
       </div>
 
