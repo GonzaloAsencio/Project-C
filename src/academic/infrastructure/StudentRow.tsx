@@ -1,4 +1,5 @@
 import type { EvaluationStatus } from "../domain/Evaluation"
+import { Eye, Trash2 } from "lucide-react"
 import type { StudentDocument } from "./useTeacherData"
 import type { EvalColumn } from "../../shared/useEvalColumns"
 import GradeCell, { type CellState } from "./GradeCell"
@@ -15,20 +16,18 @@ interface StudentRowProps {
 
 export default function StudentRow({ student, columns, cellStates, onCellChange, onViewDetails, onDeleteStudent }: StudentRowProps) {
   const grades = student.gradesSummary ?? {}
-  const initials = (student.displayName || student.email).slice(0, 2).toUpperCase()
 
   return (
     <tr>
       <td>
         <div className={styles.studentInfo}>
-          <div className={styles.studentAvatar}>{initials}</div>
           <div>
             <div className={styles.studentName}>{student.displayName || student.email}</div>
             <div className={styles.studentEmail}>{student.email}</div>
           </div>
         </div>
       </td>
-      <td><span className={styles.levelBadge}>⭐ {student.level ?? 1}</span></td>
+      <td><span className={styles.levelBadge}>{student.level ?? 1}</span></td>
       <td><span className={styles.xpValue}>{student.xp ?? 0} XP</span></td>
       {columns.map((col) => (
         <td key={col.key}>
@@ -43,11 +42,21 @@ export default function StudentRow({ student, columns, cellStates, onCellChange,
       ))}
       <td>
         <div className={styles.actionButtons}>
-          <button className={styles.detailBtn} onClick={() => onViewDetails(student)}>
-            Ver detalles
+          <button
+            className={styles.actionIconBtn}
+            onClick={() => onViewDetails(student)}
+            aria-label={`Ver detalles de ${student.displayName || student.email}`}
+            data-tooltip="Ver detalles"
+          >
+            <Eye size={16} strokeWidth={2} aria-hidden="true" />
           </button>
-          <button className={styles.deleteBtn} onClick={() => onDeleteStudent(student)} title="Eliminar alumno">
-            🗑️
+          <button
+            className={styles.actionIconBtn}
+            onClick={() => onDeleteStudent(student)}
+            aria-label={`Eliminar ${student.displayName || student.email}`}
+            data-tooltip="Eliminar alumno"
+          >
+            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
       </td>

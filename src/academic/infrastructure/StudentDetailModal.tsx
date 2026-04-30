@@ -45,8 +45,6 @@ export default function StudentDetailModal({ student, materiaId, onClose }: Prop
   }, [onClose])
 
   const grades = student.gradesSummary ?? {}
-  const initials = (student.displayName || student.email).slice(0, 2).toUpperCase()
-
   const chartData = columns.map((col) => ({
     name: col.label,
     score: grades[col.key]?.status === "Pending" ? 0 : (grades[col.key]?.score ?? 0),
@@ -73,7 +71,6 @@ export default function StudentDetailModal({ student, materiaId, onClose }: Prop
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerInfo}>
-            <div className={styles.avatar}>{initials}</div>
             <div>
               <p className={styles.name}>{student.displayName || student.email}</p>
               <p className={styles.email}>{student.email}</p>
@@ -85,8 +82,7 @@ export default function StudentDetailModal({ student, materiaId, onClose }: Prop
         {/* Stats */}
         <div className={styles.statsRow}>
           <div className={styles.statChip}>
-            <span className={styles.statValue}>⭐ {student.level ?? 1}</span>
-            <span className={styles.statLabel}>Nivel</span>
+            <span className={styles.statValue}>{student.level ?? 1}</span>
           </div>
           <div className={styles.statChip}>
             <span className={styles.statValue}>{student.xp ?? 0}</span>

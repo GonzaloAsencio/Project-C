@@ -1,4 +1,5 @@
 import clsx from "clsx"
+import { CheckCheck, Eraser, Trash2 } from "lucide-react"
 import type { ClassSession } from "../application/AttendanceService"
 import type { StudentDocument } from "./useTeacherData"
 import styles from "./TeacherPanel.module.css"
@@ -35,39 +36,42 @@ export default function AttendanceSession({
         <span>📅</span>
         <span className={styles.sessionDate}>{dateLabel}</span>
         {session.selfRegistration && (
-          <span className={styles.sessionSelfRegBadge} title="Auto-registro habilitado">🔓</span>
+          <span className={styles.sessionSelfRegBadge} data-tooltip="Auto-registro habilitado">🔓</span>
         )}
         <span className={styles.sessionCount}>
           {presentCount}/{students.length} presentes
         </span>
         <div className={styles.sessionActions}>
           <button
-            className={styles.sessionActionBtn}
+            className={styles.actionIconBtn}
             disabled={!!isBulkLoading || presentCount === students.length}
             onClick={() => onMarkAll(session.id)}
-            title="Marcar todos presentes"
+            data-tooltip="Marcar todos presentes"
+            aria-label={`Marcar presentes en ${dateLabel}`}
           >
-            ✓ Todos
+            <CheckCheck size={16} strokeWidth={2} aria-hidden="true" />
           </button>
           <button
-            className={styles.sessionActionBtn}
+            className={styles.actionIconBtn}
             disabled={!!isBulkLoading}
             onClick={() => {
               if (window.confirm("¿Desmarcar a todos los alumnos?\nEl XP ya otorgado no se revertirá.")) {
                 onClearAll(session.id)
               }
             }}
-            title="Desmarcar todos"
+            data-tooltip="Desmarcar todos"
+            aria-label={`Limpiar asistencia de ${dateLabel}`}
           >
-            ✕ Limpiar
+            <Eraser size={16} strokeWidth={2} aria-hidden="true" />
           </button>
           <button
-            className={clsx(styles.sessionActionBtn, styles.sessionActionBtnDanger)}
+            className={styles.actionIconBtn}
             disabled={!!isBulkLoading}
             onClick={() => onDelete(session.id, dateLabel)}
-            title="Eliminar sesión"
+            data-tooltip="Eliminar sesión"
+            aria-label={`Eliminar sesión ${dateLabel}`}
           >
-            🗑
+            <Trash2 size={16} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -75,7 +79,6 @@ export default function AttendanceSession({
         {students.map((student) => {
           const isPresent = session.presentStudents.includes(student.uid)
           const isSaving = checkStates[`${session.id}_${student.uid}`] ?? false
-          const initials = (student.displayName || student.email).slice(0, 2).toUpperCase()
           return (
             <button
               key={student.uid}
@@ -91,10 +94,10 @@ export default function AttendanceSession({
               <div className={styles.attCheckbox}>
                 {isPresent && <span style={{ fontSize: "0.7rem" }}>✓</span>}
               </div>
-              <div className={styles.studentAvatar} style={{ width: 28, height: 28, fontSize: "0.75rem" }}>
-                {initials}
+              <div className={styles.attStudentInfo}>
+                <span className={styles.attName}>{student.displayName || student.email}</span>
+                <span className={styles.attEmail}>{student.email}</span>
               </div>
-              <span className={styles.attName}>{student.displayName || student.email}</span>
               {isPresent && <span className={styles.attXp}>+20 XP</span>}
             </button>
           )

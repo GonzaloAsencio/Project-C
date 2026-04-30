@@ -138,33 +138,15 @@
 }
 
 /* ── Student info ── */
-.studentAvatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #a855f7, #7c3aed);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 800;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-}
-
 .studentInfo { display: flex; align-items: center; gap: 0.75rem; }
 .studentName { font-weight: 700; font-size: 0.95rem; color: #1e293b; }
 .studentEmail { font-size: 0.78rem; color: #94a3b8; margin-top: 0.1rem; }
 
 .levelBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  background: linear-gradient(135deg, #a855f7, #7c3aed);
-  color: #fff;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
+  display: inline-block;
+  color: #111827;
+  padding: 0;
+  font-size: 0.95rem;
   font-weight: 700;
 }
 
@@ -225,6 +207,45 @@
   line-height: 1;
 }
 .colActionBtn:hover { border-color: #a855f7; color: #7c3aed; background: #faf5ff; }
+
+.actionIconBtn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionIconBtn:hover:not(:disabled) {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.actionIconBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.actionIconBtn:focus-visible {
+  outline: 3px solid rgba(29, 78, 216, 0.25);
+  outline-offset: 2px;
+}
+
+.spinningIcon {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 .bulkResetBtn {
   padding: 0.15rem 0.35rem;
@@ -527,7 +548,24 @@
 }
 
 .attStudentPresent .attCheckbox { background: #10b981; border-color: #10b981; color: #fff; }
+.attStudentInfo {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
 .attName { font-size: 0.85rem; font-weight: 600; color: #1e293b; }
+.attEmail {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .attXp   { font-size: 0.72rem; color: #10b981; font-weight: 700; margin-left: auto; }
 
 .noSessions { padding: 3rem 2rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
@@ -571,7 +609,6 @@
 .sessionSelfRegBadge {
   font-size: 0.85rem;
   opacity: 0.8;
-  title: "Auto-registro";
 }
 
 .sessionActions {
@@ -636,8 +673,23 @@
 .loadMoreWrap {
   padding: 1.25rem;
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   border-top: 1px solid #f1f5f9;
+}
+
+.pageInfo {
+  font-size: 0.82rem;
+  color: #475569;
+  font-weight: 700;
+}
+
+.paginationActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .loadMoreBtn {
@@ -665,40 +717,73 @@
 .actionButtons {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
-.detailBtn {
-  padding: 0.35rem 0.875rem;
+/* ── Custom tooltip system ── */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 3px);
+  width: 8px;
+  height: 8px;
+  transform: translateX(-50%) rotate(45deg) translateY(2px);
+  background: #111827;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 40;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%) translateY(2px);
+  padding: 0.38rem 0.55rem;
   border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
-  background: #f8fafc;
-  color: #7c3aed;
-  font-size: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #111827;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.32);
+  color: #f8fafc;
+  font-size: 0.72rem;
   font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  line-height: 1.15;
   white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 41;
 }
 
-.detailBtn:hover {
-  border-color: #a855f7;
-  background: #faf5ff;
+[data-tooltip]:hover::before,
+[data-tooltip]:focus-visible::before,
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) rotate(45deg) translateY(0);
 }
 
-.deleteBtn {
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #fee2e2;
-  background: #fef2f2;
-  color: #7c3aed;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  line-height: 1;
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  transform: translateX(-50%) translateY(0);
 }
 
-.deleteBtn:hover {
-  border-color: #fca5a5;
-  background: #fee2e2;
+@media (hover: none) {
+  [data-tooltip]::before,
+  [data-tooltip]::after {
+    display: none;
+  }
 }
+

@@ -1,5 +1,6 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import clsx from "clsx"
+import { LoaderCircle, Pencil, RotateCcw, Trash2 } from "lucide-react"
 import { doc, setDoc, writeBatch, deleteField } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { attendanceService } from "../../shared/services"
@@ -26,6 +27,7 @@ type CellKey = string
 const updateGradeUC = new UpdateGrade()
 const deleteStudentUC = new DeleteStudent()
 const authAdapter = new FirebaseAuthAdapter()
+const STUDENTS_PER_PAGE = 10
 
 type ConfirmAction =
   | { type: "bulk-reset"; col: EvalColumn }
@@ -107,10 +109,39 @@ function TeacherPanelInner({
   const [creatingStudent, setCreatingStudent] = useState(false)
   const [createStudentError, setCreateStudentError] = useState<string | null>(null)
   const [createStudentSuccess, setCreateStudentSuccess] = useState<string | null>(null)
+  const [studentPage, setStudentPage] = useState(0)
 
   // Delete student state
   const [deletingStudentUid, setDeletingStudentUid] = useState<string | null>(null)
   const [deleteStudentError, setDeleteStudentError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setStudentPage(0)
+  }, [filterText])
+
+  const totalStudentPages = Math.max(1, Math.ceil(filteredStudents.length / STUDENTS_PER_PAGE))
+  const currentStudentPage = Math.min(studentPage, totalStudentPages - 1)
+  const paginatedStudents = filteredStudents.slice(
+    currentStudentPage * STUDENTS_PER_PAGE,
+    (currentStudentPage + 1) * STUDENTS_PER_PAGE,
+  )
+  const pageStart = filteredStudents.length === 0 ? 0 : currentStudentPage * STUDENTS_PER_PAGE + 1
+  const pageEnd = Math.min((currentStudentPage + 1) * STUDENTS_PER_PAGE, filteredStudents.length)
+
+  async function handleNextStudentPage() {
+    const nextPage = currentStudentPage + 1
+    const nextPageStart = nextPage * STUDENTS_PER_PAGE
+
+    if (nextPageStart < filteredStudents.length) {
+      setStudentPage(nextPage)
+      return
+    }
+
+    if (!filterText && hasMore && !loadingMore) {
+      await loadMore()
+      setStudentPage(nextPage)
+    }
+  }
 
   async function handleCreateSession() {
     if (!user) return
@@ -419,7 +450,11 @@ function TeacherPanelInner({
           <span className={styles.subtitle}>Gestión de evaluaciones en tiempo real</span>
         </div>
         <div className={styles.statsRow}>
-          <button className={styles.createStudentBtn} onClick={() => setShowCreateStudent(true)}>
+          <button
+            className={styles.createStudentBtn}
+            onClick={() => setShowCreateStudent(true)}
+            data-tooltip="Crear una nueva cuenta de alumno"
+          >
             + Crear alumno
           </button>
           <span className={styles.statChip}>👥 {students.length} alumno{students.length !== 1 ? "s" : ""}{hasMore ? "+" : ""}</span>
@@ -490,15 +525,28 @@ function TeacherPanelInner({
                     <option value="TP">TP</option>
                     <option value="Parcial">Parcial</option>
                   </select>
-                  <button className={styles.addColConfirm} onClick={handleAddColumn} disabled={!newColLabel.trim()}>
+                  <button
+                    className={styles.addColConfirm}
+                    onClick={handleAddColumn}
+                    disabled={!newColLabel.trim()}
+                    data-tooltip="Guardar nueva evaluación"
+                  >
                     Agregar
                   </button>
-                  <button className={styles.addColCancel} onClick={() => { setShowAddForm(false); setNewColLabel("") }}>
+                  <button
+                    className={styles.addColCancel}
+                    onClick={() => { setShowAddForm(false); setNewColLabel("") }}
+                    data-tooltip="Cancelar creación de evaluación"
+                  >
                     Cancelar
                   </button>
                 </div>
               ) : (
-                <button className={styles.addColBtn} onClick={() => setShowAddForm(true)}>
+                <button
+                  className={styles.addColBtn}
+                  onClick={() => setShowAddForm(true)}
+                  data-tooltip="Agregar una nueva evaluación"
+                >
                   + Agregar evaluación
                 </button>
               )}
@@ -531,23 +579,34 @@ function TeacherPanelInner({
                           )}
                           <div className={styles.colHeaderActions}>
                             <button
-                              className={styles.colActionBtn}
-                              title="Renombrar columna"
+                              className={styles.actionIconBtn}
+                              data-tooltip="Renombrar columna"
+                              aria-label={`Editar columna ${col.label}`}
                               onClick={() => { setEditingKey(col.key); setEditLabel(col.label) }}
-                            >✏️</button>
+                            >
+                              <Pencil size={15} strokeWidth={2} aria-hidden="true" />
+                            </button>
                             <button
-                              className={styles.bulkResetBtn}
-                              title="Marcar todos como Pendiente"
+                              className={styles.actionIconBtn}
+                              data-tooltip="Marcar todos como Pendiente"
+                              aria-label={`Resetear columna ${col.label}`}
                               disabled={bulkingKey === col.key}
                               onClick={() => setConfirmAction({ type: "bulk-reset", col })}
                             >
-                              {bulkingKey === col.key ? "⏳" : "↺"}
+                              {bulkingKey === col.key ? (
+                                <LoaderCircle size={15} strokeWidth={2} aria-hidden="true" className={styles.spinningIcon} />
+                              ) : (
+                                <RotateCcw size={15} strokeWidth={2} aria-hidden="true" />
+                              )}
                             </button>
                             <button
-                              className={styles.colActionBtn}
-                              title="Eliminar columna"
+                              className={styles.actionIconBtn}
+                              data-tooltip="Eliminar columna"
+                              aria-label={`Eliminar columna ${col.label}`}
                               onClick={() => setConfirmAction({ type: "delete-col", col })}
-                            >🗑️</button>
+                            >
+                              <Trash2 size={15} strokeWidth={2} aria-hidden="true" />
+                            </button>
                           </div>
                         </div>
                       </th>
@@ -573,7 +632,7 @@ function TeacherPanelInner({
                       </td>
                     </tr>
                   ) : (
-                    filteredStudents.map((student) => (
+                    paginatedStudents.map((student) => (
                       <StudentRow
                         key={student.uid}
                         student={student}
@@ -589,16 +648,34 @@ function TeacherPanelInner({
               </table>
             </div>
 
-            {/* Load more */}
-            {hasMore && !filterText && (
+            {(filteredStudents.length > 0 || (hasMore && !filterText)) && (
               <div className={styles.loadMoreWrap}>
-                <button
-                  className={styles.loadMoreBtn}
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? "⏳ Cargando…" : "Cargar más alumnos"}
-                </button>
+                <div className={styles.pageInfo}>
+                  {filteredStudents.length === 0
+                    ? "Sin alumnos cargados"
+                    : `${pageStart}-${pageEnd} de ${filteredStudents.length}${hasMore && !filterText ? "+" : ""}`}
+                </div>
+                <div className={styles.paginationActions}>
+                  <button
+                    className={styles.loadMoreBtn}
+                    onClick={() => setStudentPage((page) => Math.max(0, page - 1))}
+                    disabled={currentStudentPage === 0}
+                    data-tooltip="Ir al bloque anterior de alumnos"
+                  >
+                    Anterior
+                  </button>
+                  <button
+                    className={styles.loadMoreBtn}
+                    onClick={handleNextStudentPage}
+                    disabled={
+                      loadingMore ||
+                      (currentStudentPage >= totalStudentPages - 1 && (!hasMore || !!filterText))
+                    }
+                    data-tooltip={loadingMore ? "Cargando más alumnos" : "Ir al siguiente bloque de alumnos"}
+                  >
+                    {loadingMore ? "Cargando…" : "Siguiente"}
+                  </button>
+                </div>
               </div>
             )}
           </div>

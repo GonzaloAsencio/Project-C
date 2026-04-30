@@ -25,7 +25,7 @@ export interface StudentDocument {
   gradesSummary: Record<string, GradeEntry>
 }
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 
 export interface TeacherDataResult {
   students: StudentDocument[]
