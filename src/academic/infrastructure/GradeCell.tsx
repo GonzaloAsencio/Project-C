@@ -51,7 +51,10 @@ export default function GradeCell({ studentUid, evalKey, entry, cellState, onCel
   return (
     <div className={styles.gradeCell}>
       {saving ? (
-        <span className={styles.saving}>⏳ Guardando…</span>
+        <span className={styles.saving}>
+          <span className={styles.inlineSpinner} aria-hidden="true" />
+          Guardando…
+        </span>
       ) : error ? (
         <span className={styles.error}>⚠️ Error al guardar</span>
       ) : null}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import clsx from "clsx"
-import { LoaderCircle, Pencil, RotateCcw, Trash2 } from "lucide-react"
+import { Pencil, RotateCcw, Trash2 } from "lucide-react"
 import { doc, setDoc, writeBatch, deleteField } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { attendanceService } from "../../shared/services"
@@ -118,6 +118,13 @@ function TeacherPanelInner({
   useEffect(() => {
     setStudentPage(0)
   }, [filterText])
+
+  useEffect(() => {
+    // Attendance must show the full roster, not only the currently paged chunk.
+    if (activeTab !== "attendance") return
+    if (loadingMore || !hasMore || !!studentsError) return
+    void loadMore()
+  }, [activeTab, hasMore, loadingMore, studentsError, loadMore])
 
   const totalStudentPages = Math.max(1, Math.ceil(filteredStudents.length / STUDENTS_PER_PAGE))
   const currentStudentPage = Math.min(studentPage, totalStudentPages - 1)
@@ -313,9 +320,20 @@ function TeacherPanelInner({
   }
 
   if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100svh", background: "#f8fafc", flexDirection: "column", gap: "1rem" }}>
-      <div style={{ fontSize: "2.5rem" }}>⏳</div>
-      <span style={{ color: "#64748b", fontWeight: 600 }}>Cargando panel del profesor…</span>
+    <div className={styles.loadingScreen}>
+      <div className={styles.loadingShell}>
+        <div className={styles.loadingHeaderSkel} />
+        <div className={styles.loadingSubSkel} />
+        <div className={styles.loadingToolbarSkel} />
+        <div className={styles.loadingTableSkel}>
+          <div className={styles.loadingRowSkel} />
+          <div className={styles.loadingRowSkel} />
+          <div className={styles.loadingRowSkel} />
+          <div className={styles.loadingRowSkel} />
+          <div className={styles.loadingRowSkel} />
+          <div className={styles.loadingRowSkel} />
+        </div>
+      </div>
     </div>
   )
 
@@ -545,7 +563,6 @@ function TeacherPanelInner({
                 <button
                   className={styles.addColBtn}
                   onClick={() => setShowAddForm(true)}
-                  data-tooltip="Agregar una nueva evaluación"
                 >
                   + Agregar evaluación
                 </button>
@@ -594,7 +611,7 @@ function TeacherPanelInner({
                               onClick={() => setConfirmAction({ type: "bulk-reset", col })}
                             >
                               {bulkingKey === col.key ? (
-                                <LoaderCircle size={15} strokeWidth={2} aria-hidden="true" className={styles.spinningIcon} />
+                                <span className={styles.inlineSpinner} aria-hidden="true" />
                               ) : (
                                 <RotateCcw size={15} strokeWidth={2} aria-hidden="true" />
                               )}
@@ -673,7 +690,14 @@ function TeacherPanelInner({
                     }
                     data-tooltip={loadingMore ? "Cargando más alumnos" : "Ir al siguiente bloque de alumnos"}
                   >
-                    {loadingMore ? "Cargando…" : "Siguiente"}
+                    {loadingMore ? (
+                      <>
+                        <span className={styles.inlineSpinner} aria-hidden="true" />
+                        Cargando…
+                      </>
+                    ) : (
+                      "Siguiente"
+                    )}
                   </button>
                 </div>
               </div>
@@ -740,7 +764,14 @@ function TeacherPanelInner({
                   disabled={creatingSession}
                   onClick={handleCreateSession}
                 >
-                  {creatingSession ? "⏳ Creando…" : "Crear sesión"}
+                  {creatingSession ? (
+                    <>
+                      <span className={styles.inlineSpinner} aria-hidden="true" />
+                      Creando…
+                    </>
+                  ) : (
+                    "Crear sesión"
+                  )}
                 </button>
               </div>
             )}

@@ -1,5 +1,6 @@
+import { useState } from "react"
 import clsx from "clsx"
-import { CheckCheck, Eraser, Trash2 } from "lucide-react"
+import { CheckCheck, ChevronDown, Eraser, Trash2 } from "lucide-react"
 import type { ClassSession } from "../application/AttendanceService"
 import type { StudentDocument } from "./useTeacherData"
 import styles from "./TeacherPanel.module.css"
@@ -23,6 +24,7 @@ export default function AttendanceSession({
   onClearAll,
   onDelete,
 }: AttendanceSessionProps) {
+  const [collapsed, setCollapsed] = useState(true)
   const presentCount = session.presentStudents.length
   const dateLabel = session.date.toLocaleDateString("es-AR", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -42,6 +44,19 @@ export default function AttendanceSession({
           {presentCount}/{students.length} presentes
         </span>
         <div className={styles.sessionActions}>
+          <button
+            className={clsx(styles.actionIconBtn, styles.sessionCollapseBtn)}
+            onClick={() => setCollapsed((prev) => !prev)}
+            data-tooltip={collapsed ? "Abrir sesión" : "Cerrar sesión"}
+            aria-label={`${collapsed ? "Abrir" : "Cerrar"} sesión ${dateLabel}`}
+          >
+            <ChevronDown
+              size={16}
+              strokeWidth={2}
+              aria-hidden="true"
+              className={clsx(styles.sessionCollapseIcon, collapsed && styles.sessionCollapseIconCollapsed)}
+            />
+          </button>
           <button
             className={styles.actionIconBtn}
             disabled={!!isBulkLoading || presentCount === students.length}
@@ -75,7 +90,7 @@ export default function AttendanceSession({
           </button>
         </div>
       </div>
-      <div className={styles.attGrid}>
+      {!collapsed && <div className={styles.attGrid}>
         {students.map((student) => {
           const isPresent = session.presentStudents.includes(student.uid)
           const isSaving = checkStates[`${session.id}_${student.uid}`] ?? false
@@ -98,11 +113,10 @@ export default function AttendanceSession({
                 <span className={styles.attName}>{student.displayName || student.email}</span>
                 <span className={styles.attEmail}>{student.email}</span>
               </div>
-              {isPresent && <span className={styles.attXp}>+20 XP</span>}
             </button>
           )
         })}
-      </div>
+      </div>}
     </div>
   )
 }
