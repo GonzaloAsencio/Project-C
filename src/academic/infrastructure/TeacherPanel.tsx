@@ -17,6 +17,8 @@ import StudentRow from "./StudentRow"
 import AttendanceSession from "./AttendanceSession"
 import StudentDetailModal from "./StudentDetailModal"
 import type { CellState } from "./GradeCell"
+import TeacherToast from "./TeacherToast"
+import type { TeacherToastItem, TeacherToastTone } from "./TeacherToast"
 import { FirebaseAuthAdapter } from "../../identity/infrastructure/FirebaseAuthAdapter"
 import { isValidTemporaryPassword } from "../../identity/application/studentProvisioning"
 import MateriaSetup from "../../identity/infrastructure/MateriaSetup"
@@ -116,6 +118,15 @@ function TeacherPanelInner({
   // Delete student state
   const [deletingStudentUid, setDeletingStudentUid] = useState<string | null>(null)
   const [deleteStudentError, setDeleteStudentError] = useState<string | null>(null)
+  const [toasts, setToasts] = useState<TeacherToastItem[]>([])
+
+  function pushToast(message: string, tone: TeacherToastTone = "info") {
+    setToasts((prev) => [...prev, { id: Date.now() + Math.floor(Math.random() * 1000), tone, message }])
+  }
+
+  function dismissToast(id: number) {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  }
 
   useEffect(() => {
     setStudentPage(0)
@@ -161,6 +172,10 @@ function TeacherPanelInner({
       const we = newSessionSelfReg ? new Date(`${newSessionDate}T${newSessionWinEnd}:00`) : undefined
       await attendanceService.createSession(user.uid, sessionDate, materiaId, newSessionSelfReg, ws, we)
       setShowSessionForm(false)
+      pushToast("Sesión creada correctamente", "success")
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo crear la sesión"
+      pushToast(message, "error")
     } finally {
       setCreatingSession(false)
     }
@@ -171,6 +186,10 @@ function TeacherPanelInner({
     setCheckStates((p) => ({ ...p, [key]: true }))
     try {
       await attendanceService.markAllPresent(classId, students.map((s) => s.uid))
+      pushToast("Se marcó presente a todo el curso", "success")
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo marcar asistencia masiva"
+      pushToast(message, "error")
     } finally {
       setCheckStates((p) => ({ ...p, [key]: false }))
     }
@@ -181,14 +200,24 @@ function TeacherPanelInner({
     setCheckStates((p) => ({ ...p, [key]: true }))
     try {
       await attendanceService.clearAllPresent(classId)
+      pushToast("Se limpió la asistencia de la sesión", "success")
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo limpiar la asistencia"
+      pushToast(message, "error")
     } finally {
       setCheckStates((p) => ({ ...p, [key]: false }))
     }
   }
 
   async function handleDeleteSession(sessionId: string) {
-    await attendanceService.deleteSession(sessionId)
-    setConfirmAction(null)
+    try {
+      await attendanceService.deleteSession(sessionId)
+      pushToast("Sesión eliminada", "success")
+      setConfirmAction(null)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo eliminar la sesión"
+      pushToast(message, "error")
+    }
   }
 
   async function handleToggleAttendance(classId: string, studentUid: string, isPresent: boolean) {
@@ -197,9 +226,14 @@ function TeacherPanelInner({
     try {
       if (isPresent) {
         await attendanceService.markPresent(classId, studentUid)
+        pushToast("Asistencia marcada", "success")
       } else {
         await attendanceService.markAbsent(classId, studentUid)
+        pushToast("Asistencia removida", "info")
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo actualizar la asistencia"
+      pushToast(message, "error")
     } finally {
       setCheckStates((p) => ({ ...p, [key]: false }))
     }
@@ -213,6 +247,7 @@ function TeacherPanelInner({
       setCellStates((p) => ({ ...p, [cellKey]: { saving: false, error: false } }))
     } catch {
       setCellStates((p) => ({ ...p, [cellKey]: { saving: false, error: true } }))
+      pushToast("No se pudo guardar la calificación", "error")
       setTimeout(() => setCellStates((p) => ({ ...p, [cellKey]: { saving: false, error: false } })), 3000)
     }
   }
@@ -278,6 +313,7 @@ function TeacherPanelInner({
         const key = `${evalFormType === "TP" ? "tp" : "parcial"}${nextIndex}`
         const newCol: EvalColumn = { key, label: name, type: evalFormType, index: nextIndex }
         await setDoc(CONFIG_DOC, { columns: [...columns, newCol] })
+        pushToast("Evaluación creada", "success")
       } else {
         if (!evalFormKey) return
         const target = columns.find((col) => col.key === evalFormKey)
@@ -296,28 +332,38 @@ function TeacherPanelInner({
             : col,
         )
         await setDoc(CONFIG_DOC, { columns: updated })
+        pushToast("Evaluación actualizada", "success")
       }
 
       closeEvalForm()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo guardar la evaluación"
+      pushToast(message, "error")
     } finally {
       setSavingEvalForm(false)
     }
   }
 
   async function handleDeleteColumn(col: EvalColumn) {
-    const updated = columns.filter(c => c.key !== col.key)
-    const batch = writeBatch(db)
-    // Remove from config
-    batch.set(CONFIG_DOC, { columns: updated })
-    // Clean gradesSummary for every loaded student
-    for (const student of students) {
-      const userRef = doc(db, "users", student.uid)
-      batch.update(userRef, { [`gradesSummary.${col.key}`]: deleteField() })
-      const evalRef = doc(db, "evaluations", `${student.uid}_${col.key}`)
-      batch.delete(evalRef)
+    try {
+      const updated = columns.filter(c => c.key !== col.key)
+      const batch = writeBatch(db)
+      // Remove from config
+      batch.set(CONFIG_DOC, { columns: updated })
+      // Clean gradesSummary for every loaded student
+      for (const student of students) {
+        const userRef = doc(db, "users", student.uid)
+        batch.update(userRef, { [`gradesSummary.${col.key}`]: deleteField() })
+        const evalRef = doc(db, "evaluations", `${student.uid}_${col.key}`)
+        batch.delete(evalRef)
+      }
+      await batch.commit()
+      pushToast("Evaluación eliminada", "success")
+      setConfirmAction(null)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo eliminar la evaluación"
+      pushToast(message, "error")
     }
-    await batch.commit()
-    setConfirmAction(null)
   }
 
   async function handleBulkReset(col: EvalColumn) {
@@ -326,6 +372,10 @@ function TeacherPanelInner({
       await Promise.all(
         students.map(s => updateGradeUC.execute(`${s.uid}_${col.key}`, "Pending", 0))
       )
+      pushToast(`Se reseteó ${col.label} para ${students.length} alumnos`, "success")
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo resetear la evaluación"
+      pushToast(message, "error")
     } finally {
       setBulkingKey(null)
       setConfirmAction(null)
@@ -339,9 +389,11 @@ function TeacherPanelInner({
       await deleteStudentUC.execute(studentUid)
       await refresh()
       setConfirmAction(null)
+      pushToast("Alumno eliminado", "success")
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo eliminar el alumno"
       setDeleteStudentError(message)
+      pushToast(message, "error")
     } finally {
       setDeletingStudentUid(null)
     }
@@ -359,6 +411,7 @@ function TeacherPanelInner({
     if (!newStudentName.trim() || !newStudentEmail.trim() || !newStudentPassword.trim()) return
     if (!isValidTemporaryPassword(newStudentPassword)) {
       setCreateStudentError("La contrasena temporal debe tener al menos 6 caracteres")
+      pushToast("La contraseña temporal debe tener al menos 6 caracteres", "error")
       return
     }
     setCreatingStudent(true)
@@ -377,9 +430,11 @@ function TeacherPanelInner({
       setNewStudentEmail("")
       setNewStudentPassword("")
       setTimeout(() => setShowCreateStudent(false), 900)
+      pushToast("Cuenta de alumno creada", "success")
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo crear el alumno"
       setCreateStudentError(message)
+      pushToast(message, "error")
     } finally {
       setCreatingStudent(false)
     }
@@ -405,6 +460,7 @@ function TeacherPanelInner({
 
   return (
     <div className={styles.root}>
+      <TeacherToast toasts={toasts} onDismiss={dismissToast} />
       {/* Confirm dialog */}
       {confirmAction && (
         <div className={styles.confirmBackdrop}>
