@@ -97,7 +97,7 @@ describe("FirestoreRules — Property 10: Restricción de escritura por rol", ()
     fc.assert(
       fc.property(
         fc.string({ minLength: 1, maxLength: 28 }),
-        fc.integer({ min: 0, max: 960 }),
+        fc.integer({ min: 0, max: 1000 }),
         fc.integer({ min: 1, max: 10 }),
         (uid, xp, level) => {
           const auth: AuthContext = { uid, role: "student" }
@@ -173,7 +173,7 @@ describe("FirestoreRules — Property 10: Restricción de escritura por rol", ()
       fc.property(
         fc.string({ minLength: 1, maxLength: 28 }),
         fc.string({ minLength: 1, maxLength: 28 }).filter((v) => v.length > 0),
-        fc.integer({ min: 0, max: 960 }),
+        fc.integer({ min: 0, max: 1000 }),
         (authUid, targetUid, xp) => {
           fc.pre(authUid !== targetUid)
           const auth: AuthContext = { uid: authUid, role: "student" }
@@ -190,7 +190,7 @@ describe("FirestoreRules — Property 10: Restricción de escritura por rol", ()
       fc.property(
         fc.string({ minLength: 1, maxLength: 28 }),
         fc.constantFrom(...PLAYABLE_CLASSES),
-        fc.integer({ min: 0, max: 960 }),
+        fc.integer({ min: 0, max: 1000 }),
         (uid, avatarClass, xp) => {
           const auth: AuthContext = { uid, role: "student" }
           const before: UserDoc = { avatarClass: null, xp: 0, level: 1, xpToNextLevel: 100, processedEvalIds: [] }

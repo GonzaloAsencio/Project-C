@@ -436,6 +436,24 @@
   gap: 0.8rem;
 }
 
+.evalFormBox {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 460px;
+  width: 92%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.evalFormHint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
 .studentCreateTitle {
   margin: 0;
   font-size: 1.15rem;

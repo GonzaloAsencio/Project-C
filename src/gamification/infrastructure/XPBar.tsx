@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react"
 import { cn } from "../../shared/cn"
+import { MAX_XP } from "../domain/xpPolicy"
 
 export interface XPBarProps {
   currentXP: number
@@ -52,7 +53,7 @@ export default function XPBar({ currentXP, level, xpToNextLevel }: XPBarProps) {
           role="progressbar"
           aria-valuenow={currentXP}
           aria-valuemin={0}
-          aria-valuemax={960}
+          aria-valuemax={MAX_XP}
         >
           <div
             className="h-full bg-mint rounded-full transition-all duration-300"

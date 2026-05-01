@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import { Sword, BookOpen, CalendarCheck, Lock, Swords } from "lucide-react"
 import { cn } from "../../shared/cn"
@@ -10,6 +10,7 @@ import { DefeatModal } from "../../gamification/infrastructure/defeat/DefeatModa
 import type { GradeEntry } from "./useStudentData"
 import type { EvalColumn } from "../../shared/useEvalColumns"
 import type { EvaluationStatus } from "../../academic/domain/Evaluation"
+import { ATTENDANCE_XP_REWARD, buildEvaluationXPRewards } from "../../gamification/domain/xpPolicy"
 
 interface EvalListProps {
   grades: Record<string, GradeEntry | undefined>
@@ -24,9 +25,6 @@ const ICON_COLORS: Record<EvaluationStatus | "attendance", string> = {
   Waiting:    "text-slate-300",
   attendance: "text-emerald-500",
 }
-
-
-const XP_REWARD: Record<"TP" | "Parcial", number> = { TP: 70, Parcial: 200 }
 
 function loadClaimed(uid: string): Set<string> {
   try {
@@ -53,6 +51,7 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
   const [attendanceError, setAttendanceError] = useState<string | null>(null)
   const [activeModal, setActiveModal] = useState<{ type: "victory" | "defeat"; label: string } | null>(null)
   const [claimLoading, setClaimLoading] = useState<string | null>(null)
+  const xpByEvalKey = useMemo(() => buildEvaluationXPRewards(columns), [columns])
 
   const hasAttendance = !!session && isWithinWindow
   const alreadyPresent = !!user && !!session && session.presentStudents.includes(user.uid)
@@ -81,7 +80,7 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
 
     if (status === "Victory") {
       const evalId = `${user.uid}_${col.type === "TP" ? "tp" : "parcial"}${col.index}`
-      const xpReward = XP_REWARD[col.type]
+      const xpReward = xpByEvalKey[col.key] ?? 0
       try {
         await progressRepo.addXPIdempotent(user.uid, xpReward, evalId)
         const confetti = (await import("canvas-confetti")).default
@@ -125,8 +124,8 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
               icon={<CalendarCheck className="w-[17px] h-[17px]" />}
               iconClass={ICON_COLORS["attendance"]}
               title="Asistencia"
-              subtitle="Ganar +20 XP"
-              xp="+20 XP"
+              subtitle={`Ganar +${ATTENDANCE_XP_REWARD} XP`}
+              xp={`+${ATTENDANCE_XP_REWARD} XP`}
               isDungeon={isDungeon}
               done={alreadyPresent || attendanceRegistered}
               action={
@@ -156,7 +155,7 @@ export default function EvalList({ grades, columns, isDungeon }: EvalListProps) 
             const claimed = claimedKeys.has(col.key)
             const loading = claimLoading === col.key
             const TypeIcon = col.type === "TP" ? Sword : BookOpen
-            const xp = XP_REWARD[col.type]
+            const xp = xpByEvalKey[col.key] ?? 0
 
             let action: React.ReactNode
             if (status === "Waiting") {

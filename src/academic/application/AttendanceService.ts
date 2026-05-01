@@ -14,6 +14,7 @@ import {
 import type { FirestoreError } from "firebase/firestore"
 import { db } from "../../shared/firebase"
 import { FirestoreProgressRepo } from "../../gamification/infrastructure/FirestoreProgressRepo"
+import { ATTENDANCE_XP_REWARD } from "../../gamification/domain/xpPolicy"
 
 export interface ClassSession {
   id: string
@@ -25,7 +26,7 @@ export interface ClassSession {
   windowEnd?: Date
 }
 
-const ATTENDANCE_XP = 20
+const ATTENDANCE_XP = ATTENDANCE_XP_REWARD
 
 function mapSession(d: { id: string; data: () => Record<string, unknown> }): ClassSession {
   const data = d.data()

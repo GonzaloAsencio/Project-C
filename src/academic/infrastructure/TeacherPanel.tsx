@@ -93,11 +93,13 @@ function TeacherPanelInner({
   const [newSessionWinEnd, setNewSessionWinEnd] = useState("10:00")
 
   // Column management state
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [newColLabel, setNewColLabel] = useState("")
-  const [newColType, setNewColType] = useState<"TP" | "Parcial">("TP")
-  const [editingKey, setEditingKey] = useState<string | null>(null)
-  const [editLabel, setEditLabel] = useState("")
+  const [showEvalForm, setShowEvalForm] = useState(false)
+  const [evalFormMode, setEvalFormMode] = useState<"create" | "edit">("create")
+  const [evalFormKey, setEvalFormKey] = useState<string | null>(null)
+  const [evalFormName, setEvalFormName] = useState("")
+  const [evalFormType, setEvalFormType] = useState<"TP" | "Parcial">("TP")
+  const [evalFormError, setEvalFormError] = useState<string | null>(null)
+  const [savingEvalForm, setSavingEvalForm] = useState(false)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const [bulkingKey, setBulkingKey] = useState<string | null>(null)
 
@@ -217,25 +219,89 @@ function TeacherPanelInner({
 
   // ── Column management ──
 
-  async function handleAddColumn() {
-    if (!newColLabel.trim()) return
-    const nextIndex = Math.max(0, ...columns.filter(c => c.type === newColType).map(c => c.index)) + 1
-    const key = `${newColType === "TP" ? "tp" : "parcial"}${nextIndex}`
-    const newCol: EvalColumn = { key, label: newColLabel.trim(), type: newColType, index: nextIndex }
-    await setDoc(CONFIG_DOC, { columns: [...columns, newCol] })
-    setNewColLabel("")
-    setNewColType("TP")
-    setShowAddForm(false)
+  function normalizeEvalName(value: string): string {
+    return value.trim().toLocaleLowerCase()
   }
 
-  async function handleRenameColumn(col: EvalColumn) {
-    if (!editLabel.trim() || editLabel.trim() === col.label) {
-      setEditingKey(null)
+  function hasDuplicateName(name: string, type: "TP" | "Parcial", ignoreKey?: string | null): boolean {
+    const normalized = normalizeEvalName(name)
+    return columns.some((column) => {
+      if (ignoreKey && column.key === ignoreKey) return false
+      return column.type === type && normalizeEvalName(column.label) === normalized
+    })
+  }
+
+  function closeEvalForm() {
+    if (savingEvalForm) return
+    setShowEvalForm(false)
+    setEvalFormMode("create")
+    setEvalFormKey(null)
+    setEvalFormName("")
+    setEvalFormType("TP")
+    setEvalFormError(null)
+  }
+
+  function openCreateEvalForm() {
+    setEvalFormMode("create")
+    setEvalFormKey(null)
+    setEvalFormName("")
+    setEvalFormType("TP")
+    setEvalFormError(null)
+    setShowEvalForm(true)
+  }
+
+  function openEditEvalForm(column: EvalColumn) {
+    setEvalFormMode("edit")
+    setEvalFormKey(column.key)
+    setEvalFormName(column.label)
+    setEvalFormType(column.type)
+    setEvalFormError(null)
+    setShowEvalForm(true)
+  }
+
+  async function handleSaveEvalForm() {
+    const name = evalFormName.trim()
+    if (!name) {
+      setEvalFormError("Ingresa un nombre para la evaluación")
       return
     }
-    const updated = columns.map(c => c.key === col.key ? { ...c, label: editLabel.trim() } : c)
-    await setDoc(CONFIG_DOC, { columns: updated })
-    setEditingKey(null)
+    if (hasDuplicateName(name, evalFormType, evalFormMode === "edit" ? evalFormKey : null)) {
+      setEvalFormError("Ya existe una evaluación con ese nombre para este tipo")
+      return
+    }
+
+    setSavingEvalForm(true)
+    setEvalFormError(null)
+    try {
+      if (evalFormMode === "create") {
+        const nextIndex = Math.max(0, ...columns.filter((c) => c.type === evalFormType).map((c) => c.index)) + 1
+        const key = `${evalFormType === "TP" ? "tp" : "parcial"}${nextIndex}`
+        const newCol: EvalColumn = { key, label: name, type: evalFormType, index: nextIndex }
+        await setDoc(CONFIG_DOC, { columns: [...columns, newCol] })
+      } else {
+        if (!evalFormKey) return
+        const target = columns.find((col) => col.key === evalFormKey)
+        if (!target) {
+          setEvalFormError("No se encontró la evaluación a editar")
+          return
+        }
+        if (target.type !== evalFormType) {
+          setEvalFormError("No se puede cambiar el tipo de una evaluación existente")
+          return
+        }
+
+        const updated = columns.map((col) =>
+          col.key === evalFormKey
+            ? { ...col, label: name }
+            : col,
+        )
+        await setDoc(CONFIG_DOC, { columns: updated })
+      }
+
+      closeEvalForm()
+    } finally {
+      setSavingEvalForm(false)
+    }
   }
 
   async function handleDeleteColumn(col: EvalColumn) {
@@ -454,6 +520,67 @@ function TeacherPanelInner({
         </div>
       )}
 
+      {showEvalForm && (
+        <div className={styles.confirmBackdrop}>
+          <div className={styles.evalFormBox}>
+            <h2 className={styles.studentCreateTitle}>
+              {evalFormMode === "create" ? "Crear evaluación" : "Editar evaluación"}
+            </h2>
+            <p className={styles.studentCreateText}>
+              Define nombre y tipo para mantener una estructura clara en el gradebook.
+            </p>
+
+            <div className={styles.studentCreateField}>
+              <label className={styles.sessionFormLabel}>Nombre</label>
+              <input
+                className={styles.sessionFormInput}
+                value={evalFormName}
+                onChange={(e) => setEvalFormName(e.target.value)}
+                placeholder="Ej: TP de funciones"
+                autoFocus
+                disabled={savingEvalForm}
+              />
+            </div>
+
+            <div className={styles.studentCreateField}>
+              <label className={styles.sessionFormLabel}>Tipo</label>
+              <select
+                className={styles.sessionFormInput}
+                value={evalFormType}
+                onChange={(e) => setEvalFormType(e.target.value as "TP" | "Parcial")}
+                disabled={savingEvalForm || evalFormMode === "edit"}
+              >
+                <option value="TP">TP</option>
+                <option value="Parcial">Parcial</option>
+              </select>
+            </div>
+
+            {evalFormMode === "edit" && (
+              <p className={styles.evalFormHint}>El tipo se mantiene fijo para preservar compatibilidad de claves y notas existentes.</p>
+            )}
+
+            {evalFormError && <p className={styles.studentCreateError}>⚠ {evalFormError}</p>}
+
+            <div className={styles.confirmActions}>
+              <button className={styles.confirmCancel} onClick={closeEvalForm} disabled={savingEvalForm}>
+                Cancelar
+              </button>
+              <button
+                className={styles.confirmOk}
+                onClick={handleSaveEvalForm}
+                disabled={savingEvalForm || !evalFormName.trim()}
+              >
+                {savingEvalForm
+                  ? "Guardando..."
+                  : evalFormMode === "create"
+                    ? "Crear evaluación"
+                    : "Guardar cambios"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {detailStudent && (
         <StudentDetailModal
           student={detailStudent}
@@ -525,48 +652,12 @@ function TeacherPanelInner({
                   {filteredStudents.length} resultado{filteredStudents.length !== 1 ? "s" : ""}
                 </span>
               )}
-              {showAddForm ? (
-                <div className={styles.addColForm}>
-                  <input
-                    className={styles.addColInput}
-                    placeholder="Nombre columna"
-                    value={newColLabel}
-                    onChange={(e) => setNewColLabel(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleAddColumn(); if (e.key === "Escape") setShowAddForm(false) }}
-                    autoFocus
-                  />
-                  <select
-                    className={styles.addColTypeSelect}
-                    value={newColType}
-                    onChange={(e) => setNewColType(e.target.value as "TP" | "Parcial")}
-                  >
-                    <option value="TP">TP</option>
-                    <option value="Parcial">Parcial</option>
-                  </select>
-                  <button
-                    className={styles.addColConfirm}
-                    onClick={handleAddColumn}
-                    disabled={!newColLabel.trim()}
-                    data-tooltip="Guardar nueva evaluación"
-                  >
-                    Agregar
-                  </button>
-                  <button
-                    className={styles.addColCancel}
-                    onClick={() => { setShowAddForm(false); setNewColLabel("") }}
-                    data-tooltip="Cancelar creación de evaluación"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              ) : (
-                <button
-                  className={styles.addColBtn}
-                  onClick={() => setShowAddForm(true)}
-                >
-                  + Agregar evaluación
-                </button>
-              )}
+              <button
+                className={styles.addColBtn}
+                onClick={openCreateEvalForm}
+              >
+                + Agregar evaluación
+              </button>
             </div>
 
             <div className={styles.tableWrap} role="region" aria-label="Tabla de alumnos" tabIndex={0}>
@@ -579,27 +670,13 @@ function TeacherPanelInner({
                     {columns.map((col) => (
                       <th key={col.key} scope="col">
                         <div className={styles.colHeader}>
-                          {editingKey === col.key ? (
-                            <input
-                              className={styles.colLabelInput}
-                              value={editLabel}
-                              autoFocus
-                              onChange={(e) => setEditLabel(e.target.value)}
-                              onBlur={() => handleRenameColumn(col)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleRenameColumn(col)
-                                if (e.key === "Escape") setEditingKey(null)
-                              }}
-                            />
-                          ) : (
-                            <span className={styles.colHeaderLabel}>{col.label}</span>
-                          )}
+                          <span className={styles.colHeaderLabel}>{col.label}</span>
                           <div className={styles.colHeaderActions}>
                             <button
                               className={styles.actionIconBtn}
                               data-tooltip="Renombrar columna"
                               aria-label={`Editar columna ${col.label}`}
-                              onClick={() => { setEditingKey(col.key); setEditLabel(col.label) }}
+                              onClick={() => openEditEvalForm(col)}
                             >
                               <Pencil size={15} strokeWidth={2} aria-hidden="true" />
                             </button>

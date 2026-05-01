@@ -57,7 +57,7 @@ describe("AddXP — Property 4: Idempotencia del handler AddXP", () => {
       fc.property(
         fc.string({ minLength: 1, maxLength: 20 }),   // evalId
         fc.string({ minLength: 1, maxLength: 20 }),   // studentUid
-        fc.integer({ min: 0, max: 960 }),              // initialXP
+        fc.integer({ min: 0, max: 1000 }),              // initialXP
         fc.constantFrom(70, 200, 20),                  // xpReward
         fc.integer({ min: 1, max: 10 }),               // N repetitions
         (evalId, studentUid, initialXP, xpReward, n) => {

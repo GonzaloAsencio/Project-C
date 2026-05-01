@@ -1,4 +1,5 @@
 import { LevelUpEvent } from "./events"
+import { MAX_LEVEL, MAX_XP } from "./xpPolicy"
 
 export class PlayerProgress {
   readonly uid: string
@@ -13,8 +14,8 @@ export class PlayerProgress {
 
   addXP(amount: number): LevelUpEvent | null {
     const prevLevel = this.level
-    this.xp = Math.min(this.xp + amount, 960)
-    this.level = Math.floor(this.xp / 100) + 1
+    this.xp = Math.min(this.xp + amount, MAX_XP)
+    this.level = Math.min(MAX_LEVEL, Math.floor(this.xp / 100) + 1)
     return this.level > prevLevel ? new LevelUpEvent(this.uid, this.level) : null
   }
 }
