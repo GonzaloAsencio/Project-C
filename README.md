@@ -11,18 +11,6 @@ Interactive academic platform with RPG-inspired progression, split into student 
 
 ---
 
-## Banner
-
-Add your project hero image here:
-
-```md
-![Project C Banner](./public/preview/project-c-banner.png)
-```
-
-Optional: add a short GIF walkthrough for login -> student panel -> teacher panel flows.
-
----
-
 ## Description
 
 Project C is a gamified classroom management app where:
